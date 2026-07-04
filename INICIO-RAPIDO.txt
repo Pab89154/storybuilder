@@ -1,0 +1,29 @@
+StoryBuilder — inicio rápido
+============================
+
+IMPORTANTE: primero DESCOMPRIMIR el zip por completo.
+No copies archivos arrastrándolos desde dentro del zip abierto en Finder;
+eso suele fallar con eslint.config.js y otros ficheros.
+
+macOS
+-----
+1. Doble clic en pablete-starter.zip (se crea la carpeta storybuilder o similar).
+2. Mueve ESA carpeta entera a donde quieras (Escritorio, Documentos…).
+3. Abre Terminal en esa carpeta y ejecuta:
+
+   npm install
+   npm run dev
+
+4. Abre http://localhost:5173 en Chrome o Edge (con WebGPU).
+
+Windows
+-------
+1. Clic derecho en el zip → "Extraer todo…".
+2. Copia la carpeta extraída completa.
+3. En esa carpeta, abre PowerShell o CMD:
+
+   npm install
+   npm run dev
+
+Requisitos: Node.js 20 o superior.
+La primera vez se descargará el modelo de IA (~2 GB) en el navegador.
