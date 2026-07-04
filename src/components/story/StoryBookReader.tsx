@@ -29,7 +29,6 @@ import {
   layoutsEqual,
 } from '@/hooks/useViewportBookLayout'
 import {
-  DEFAULT_PAGINATION_LAYOUT,
   LINES_PER_PAGE,
   paginateStory,
   type PaginateOptions,
@@ -127,14 +126,6 @@ interface StoryBookReaderProps {
   streamingParagraphId?: string | null
   streamingContent?: string
   fillHeight?: boolean
-}
-
-function InlineLayoutPlaceholder() {
-  return (
-    <div className="book-paper flex h-full min-h-[280px] w-full items-center justify-center rounded-2xl border border-stone-200/80">
-      <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-    </div>
-  )
 }
 
 function InlineBookPage({
@@ -484,8 +475,7 @@ export function StoryBookReader({
   const [isFullPage, setIsFullPage] = useState(false)
   const [fontSizePx, setFontSizePx] = useState(readStoredFontSize)
   const { layout: inlineLayout, lineHeightPx: inlineLineHeight, setContainerRef } = useInlineBookLayout(fontSizePx)
-  const paginationLayout = inlineLayout ?? DEFAULT_PAGINATION_LAYOUT
-  const inlinePages = useMemo(() => paginateStory(paragraphs, paginateOptions, paginationLayout, chapters), [paragraphs, paginateOptions, paginationLayout, chapters])
+  const inlinePages = useMemo(() => paginateStory(paragraphs, paginateOptions, inlineLayout, chapters), [paragraphs, paginateOptions, inlineLayout, chapters])
 
   useEffect(() => {
     restoredBookmarkStoryRef.current = null
@@ -550,7 +540,7 @@ export function StoryBookReader({
 
   return (
     <>
-      <div className={cn('flex w-full flex-col gap-2', fillHeight && 'min-h-full')}>
+      <div className={cn('flex w-full flex-col gap-2', fillHeight && 'min-h-0 flex-1')}>
         <div className="shrink-0">
           <ReaderToolbar
             leftPageIndex={currentPage}
@@ -565,18 +555,14 @@ export function StoryBookReader({
             isFullPage={false}
           />
         </div>
-        <div ref={setContainerRef} className={cn('w-full min-w-0', inlinePageShell)}>
-          {inlineLayout ? (
-            <InlineBookPage
-              page={inlinePage}
-              pageNumber={currentPage + 1}
-              isBookmarked={inlineBookmarked}
-              lineHeightPx={inlineLineHeight}
-              fontSizePx={fontSizePx}
-            />
-          ) : (
-            <InlineLayoutPlaceholder />
-          )}
+        <div ref={setContainerRef} className={cn('w-full min-w-0', fillHeight ? 'min-h-0 flex-1' : inlinePageShell)}>
+          <InlineBookPage
+            page={inlinePage}
+            pageNumber={currentPage + 1}
+            isBookmarked={inlineBookmarked}
+            lineHeightPx={inlineLineHeight}
+            fontSizePx={fontSizePx}
+          />
         </div>
         <p className="text-center text-[10px] text-[var(--color-muted-foreground)]">{t('reader.fullScreenHint')}</p>
       </div>

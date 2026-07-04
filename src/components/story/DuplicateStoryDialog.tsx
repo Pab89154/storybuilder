@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { LanguageSelect, languageDisplay } from '@/components/story/LanguageSelect'
 import { useDuplicateStory } from '@/hooks/useDuplicateStory'
-import { useLLM } from '@/hooks/useLLM'
 import { useUiT } from '@/i18n/context'
 import { defaultDuplicateTargetLanguage } from '@/lib/storyLanguageMeta'
 import type { Language, StoryWithDetails } from '@/types/story'
@@ -31,7 +30,6 @@ export function DuplicateStoryDialog({
   buttonSize = 'default',
 }: DuplicateStoryDialogProps) {
   const t = useUiT()
-  const { isReady } = useLLM()
   const { duplicateAndTranslate, isDuplicating, duplicateProgress } = useDuplicateStory()
   const [open, setOpen] = useState(false)
   const defaultTarget = defaultDuplicateTargetLanguage(story.language)
@@ -48,7 +46,7 @@ export function DuplicateStoryDialog({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size={buttonSize} disabled={disabled || isDuplicating || !isReady}>
+        <Button variant="outline" size={buttonSize} disabled={disabled || isDuplicating}>
           {isDuplicating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PaginationLayout } from '@/lib/storyPagination'
-import { CHARS_PER_LINE, LINES_PER_PAGE } from '@/lib/storyPagination'
+import { CHARS_PER_LINE, DEFAULT_PAGINATION_LAYOUT, LINES_PER_PAGE } from '@/lib/storyPagination'
 
 export const DEFAULT_FONT_SIZE_PX = 17
 export const MIN_FONT_SIZE_PX = 13
@@ -11,9 +11,17 @@ const MIN_LINES_PER_PAGE = 5
 const PAGE_HEADER_PX = 36
 const PAGE_FOOTER_PX = 8
 const PAGE_HORIZONTAL_PADDING = 48
-/** Inline reader: px-6 md:px-8 on each side */
-const INLINE_HORIZONTAL_PADDING = 64
-const INLINE_VERTICAL_PADDING = 48
+/** Inline reader horizontal padding (px-4 / px-6 / px-8 each side). */
+function inlineHorizontalPadding(containerWidth: number): number {
+  if (containerWidth < 640) return 32
+  if (containerWidth < 768) return 48
+  return 64
+}
+
+function inlineVerticalPadding(containerWidth: number): number {
+  if (containerWidth < 640) return 40
+  return 48
+}
 const LINE_HEIGHT_RATIO = 1.45
 
 export function buildFullPageFont(fontSizePx: number): string {
@@ -65,8 +73,8 @@ function measureElement(element: HTMLElement, fontSizePx: number, mode: BookLayo
   if (height <= 0 || width <= 0) return null
 
   const horizontalPad =
-    mode === 'single' ? INLINE_HORIZONTAL_PADDING : PAGE_HORIZONTAL_PADDING
-  const verticalPad = mode === 'single' ? INLINE_VERTICAL_PADDING : 0
+    mode === 'single' ? inlineHorizontalPadding(width) : PAGE_HORIZONTAL_PADDING
+  const verticalPad = mode === 'single' ? inlineVerticalPadding(width) : 0
 
   const pageBodyHeight = height - PAGE_HEADER_PX - PAGE_FOOTER_PX - verticalPad
   const pageBodyWidth =
@@ -80,11 +88,12 @@ function measureElement(element: HTMLElement, fontSizePx: number, mode: BookLayo
 }
 
 function useBookLayout(fontSizePx: number, mode: BookLayoutMode) {
-  const [layout, setLayout] = useState<PaginationLayout | null>(null)
+  const [layout, setLayout] = useState<PaginationLayout>(DEFAULT_PAGINATION_LAYOUT)
   const [lineHeightPx, setLineHeightPx] = useState(lineHeightForFont(fontSizePx))
   const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null)
-  const layoutRef = useRef<PaginationLayout | null>(null)
+  const layoutRef = useRef<PaginationLayout>(DEFAULT_PAGINATION_LAYOUT)
   const lineHeightRef = useRef(lineHeightForFont(fontSizePx))
+  const lastSizeRef = useRef({ width: 0, height: 0 })
 
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     setContainerNode(node)
@@ -97,6 +106,18 @@ function useBookLayout(fontSizePx: number, mode: BookLayoutMode) {
     let rafId: number | null = null
 
     const applyMeasure = () => {
+      const height = containerNode.clientHeight
+      const width = containerNode.clientWidth
+      if (height <= 0 || width <= 0) return
+
+      if (
+        Math.abs(lastSizeRef.current.width - width) < 3 &&
+        Math.abs(lastSizeRef.current.height - height) < 3
+      ) {
+        return
+      }
+      lastSizeRef.current = { width, height }
+
       const result = measureElement(containerNode, fontSizePx, mode)
       if (!result) return
 
@@ -120,7 +141,7 @@ function useBookLayout(fontSizePx: number, mode: BookLayoutMode) {
         debounceId = null
         if (rafId !== null) window.cancelAnimationFrame(rafId)
         rafId = window.requestAnimationFrame(applyMeasure)
-      }, 120)
+      }, 300)
     }
 
     applyMeasure()

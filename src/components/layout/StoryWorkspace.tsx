@@ -96,7 +96,7 @@ function ViewModeToggle({
 export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorkspaceProps) {
   const t = useUiT()
   const { activeStory, saveStoryMeta, folders, moveStory, setBookmark } = useStories()
-  const { generate, continueStory, cancel, isGenerating, isReady } = useGeneration()
+  const { generate, continueStory, cancel, isGenerating, isLoading } = useGeneration()
   const { wordCount, generationError, isDuplicating, streamingParagraphId, streamingContent } =
     useStoryStore()
   const streamingWordCount =
@@ -201,7 +201,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
                 <Button
                   size="sm"
                   onClick={() => void generate()}
-                  disabled={!isReady || isGenerating || isDuplicating}
+                  disabled={isGenerating || isDuplicating || isLoading}
                 >
                   {isGenerating ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -215,7 +215,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
                   variant="secondary"
                   onClick={() => void continueStory()}
                   disabled={
-                    !isReady || isGenerating || isDuplicating || activeStory.paragraphs.length === 0
+                    isGenerating || isDuplicating || isLoading || activeStory.paragraphs.length === 0
                   }
                 >
                   <StepForward className="h-3.5 w-3.5" />
@@ -320,11 +320,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
               {generationError}
             </div>
           ) : null}
-          <div
-            className={cn(
-              'min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4 md:px-5',
-            )}
-          >
+          <div className="flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 md:px-5">
             <StoryBookReader
               storyId={activeStory.id}
               storyTitle={activeStory.title}

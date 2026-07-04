@@ -301,6 +301,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
             {t('sidebar.newStory')}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setShowNewFolder(true)}>
+            <Plus className="h-4 w-4" />
             <Library className="h-4 w-4" />
             {t('sidebar.collection')}
           </Button>

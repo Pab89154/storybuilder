@@ -432,7 +432,7 @@ export function StorySetupActions({
     continueAdvanced,
     cancel,
     isGenerating,
-    isReady,
+    isLoading,
   } = useGeneration()
 
   const isLegacy = story.creationMode === 'legacy'
@@ -455,7 +455,7 @@ export function StorySetupActions({
         <Button
           size="sm"
           onClick={() => void generateAutomatic()}
-          disabled={!isReady || isGenerating || story.isBookFinished}
+          disabled={isGenerating || isLoading || story.isBookFinished}
           title={inProgressHint ?? undefined}
         >
           {isGenerating ? (
@@ -476,7 +476,7 @@ export function StorySetupActions({
               size="sm"
               variant="secondary"
               onClick={() => void continueAdvanced()}
-              disabled={!isReady || isGenerating}
+              disabled={isGenerating || isLoading}
               title={inProgressHint ?? undefined}
             >
               {isGenerating ? (
@@ -490,7 +490,7 @@ export function StorySetupActions({
           <Button
             size="sm"
             onClick={() => void addAdvancedChapter(advancedBrief)}
-            disabled={!isReady || isGenerating}
+            disabled={isGenerating || isLoading}
           >
             <Plus className="h-3.5 w-3.5" />
             {t('setup.newChapter')}
@@ -500,7 +500,7 @@ export function StorySetupActions({
               size="sm"
               variant="outline"
               onClick={() => void finishBook()}
-              disabled={!isReady || isGenerating}
+              disabled={isGenerating || isLoading}
             >
               <Flag className="h-3.5 w-3.5" />
               {t('setup.finish')}

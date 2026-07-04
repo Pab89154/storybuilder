@@ -18,7 +18,7 @@ import { useUiT } from '@/i18n/context'
 import type { Paragraph } from '@/types/story'
 
 export function useGeneration() {
-  const { isReady } = useLLM()
+  const { isReady, isLoading } = useLLM()
   const t = useUiT()
   const {
     activeStory,
@@ -273,6 +273,7 @@ export function useGeneration() {
 
   return {
     isReady,
+    isLoading,
     isGenerating,
     generate,
     generateAutomatic,
