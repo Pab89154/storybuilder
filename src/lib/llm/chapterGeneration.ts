@@ -28,6 +28,7 @@ import type { GenerationCallbacks } from '@/lib/llm/generation'
 import {
   CHUNK_WORD_TARGET,
   clampChapterWordTarget,
+  clampPlannedChapterCount,
   computeFinaleWordTarget,
   type Chapter,
   type Character,
@@ -62,7 +63,7 @@ async function createChapterOutline(
   characters: Character[],
   callbacks: GenerationCallbacks,
 ): Promise<Chapter[]> {
-  const chapterCount = Math.max(2, story.plannedChapterCount)
+  const chapterCount = clampPlannedChapterCount(story.plannedChapterCount)
   const wordsPerChapter = clampChapterWordTarget(story.chapterWordTarget)
 
   const outlineText = await streamCompletion(

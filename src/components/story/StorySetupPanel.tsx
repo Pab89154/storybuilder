@@ -33,10 +33,13 @@ import {
 } from '@/components/ui/select'
 import {
   clampChapterWordTarget,
+  clampPlannedChapterCount,
   MAX_CHAPTER_WORDS,
   MAX_FINISH_PERCENT,
+  MAX_PLANNED_CHAPTERS,
   MIN_CHAPTER_WORDS_INPUT,
   MIN_FINISH_PERCENT,
+  MIN_PLANNED_CHAPTERS,
   READER_AGE_OPTIONS,
   type BookCreationMode,
   type StoryWithDetails,
@@ -222,16 +225,15 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                     <span className="font-medium text-stone-600">{t('setup.totalChapters')}</span>
                     <Input
                       type="number"
-                      min={2}
-                      max={20}
+                      min={MIN_PLANNED_CHAPTERS}
+                      max={MAX_PLANNED_CHAPTERS}
                       value={story.plannedChapterCount}
                       disabled={!canEditPlan}
                       onChange={(event) =>
                         void onSaveMeta(
                           {
-                            plannedChapterCount: Math.max(
-                              2,
-                              Math.min(20, Number(event.target.value) || 2),
+                            plannedChapterCount: clampPlannedChapterCount(
+                              Number(event.target.value) || MIN_PLANNED_CHAPTERS,
                             ),
                           },
                           { persistNow: true },

@@ -99,6 +99,8 @@ export function normalizeReaderAge(readerAge: number | undefined): number {
   return DEFAULT_READER_AGE
 }
 export const DEFAULT_PLANNED_CHAPTERS = 3
+export const MIN_PLANNED_CHAPTERS = 2
+export const MAX_PLANNED_CHAPTERS = 40
 export const DEFAULT_FINISH_PERCENT = 25
 export const MIN_FINISH_PERCENT = 10
 export const MAX_FINISH_PERCENT = 50
@@ -107,6 +109,13 @@ export function clampChapterWordTarget(value: number): number {
   return Math.min(
     MAX_CHAPTER_WORDS,
     Math.max(MIN_CHAPTER_WORDS_INPUT, Math.round(value)),
+  )
+}
+
+export function clampPlannedChapterCount(value: number): number {
+  return Math.min(
+    MAX_PLANNED_CHAPTERS,
+    Math.max(MIN_PLANNED_CHAPTERS, Math.round(value)),
   )
 }
 
