@@ -66,7 +66,7 @@ function ViewModeToggle({
       <button
         type="button"
         className={cn(
-          'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+          'rounded-md px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 sm:py-1.5',
           viewMode === 'read'
             ? 'bg-[var(--color-primary)] text-white'
             : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
@@ -79,7 +79,7 @@ function ViewModeToggle({
       <button
         type="button"
         className={cn(
-          'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+          'rounded-md px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 sm:py-1.5',
           viewMode === 'edit'
             ? 'bg-[var(--color-primary)] text-white'
             : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
@@ -167,32 +167,34 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <header className="shrink-0 border-b bg-white px-4 py-2">
-        <div className="flex items-center gap-2">
-          {sidebarCollapsed ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={onToggleSidebar}
-              title={t('workspace.expandSidebar')}
-              aria-label={t('workspace.expandSidebar')}
-            >
-              <PanelLeft className="h-4 w-4" />
-            </Button>
-          ) : null}
-          <BookOpen
-            className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
-            aria-hidden
-          />
-          <Input
-            value={activeStory.title}
-            onChange={(e) => void saveStoryMeta({ title: e.target.value })}
-            placeholder={t('workspace.storyTitle')}
-            aria-label={t('workspace.storyTitle')}
-            className="h-8 min-w-0 flex-1 border-none px-0 text-base font-semibold shadow-none focus-visible:ring-0"
-          />
-          <div className="flex shrink-0 items-center gap-2">
+      <header className="shrink-0 border-b bg-white px-3 py-2 sm:px-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {sidebarCollapsed ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={onToggleSidebar}
+                title={t('workspace.expandSidebar')}
+                aria-label={t('workspace.expandSidebar')}
+              >
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            ) : null}
+            <BookOpen
+              className="hidden h-4 w-4 shrink-0 text-[var(--color-primary)] sm:block"
+              aria-hidden
+            />
+            <Input
+              value={activeStory.title}
+              onChange={(e) => void saveStoryMeta({ title: e.target.value })}
+              placeholder={t('workspace.storyTitle')}
+              aria-label={t('workspace.storyTitle')}
+              className="h-9 min-w-0 flex-1 border-none px-0 text-base font-semibold shadow-none focus-visible:ring-0"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">
             <ViewModeToggle viewMode={viewMode} onChange={setViewMode} t={t} />
             {activeStory.creationMode === 'legacy' ? (
               <>
@@ -257,7 +259,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
           <LanguageSelect
             value={activeStory.language}
             onValueChange={(language) => void saveStoryMeta({ language }, { persistNow: true })}
-            triggerClassName="h-8 w-[7.5rem] text-xs"
+            triggerClassName="h-9 min-w-[6.5rem] flex-1 text-xs sm:h-8 sm:w-[7.5rem] sm:flex-none"
           />
           <Input
             list="genre-suggestions"
@@ -265,7 +267,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
             onChange={(e) => void saveStoryMeta({ genre: e.target.value })}
             placeholder={t('workspace.genre')}
             aria-label={t('workspace.genre')}
-            className="h-8 w-28 text-xs"
+            className="h-9 min-w-[5rem] flex-1 text-xs sm:h-8 sm:w-28 sm:flex-none"
           />
           <datalist id="genre-suggestions">
             {GENRE_I18N_KEYS.map((key) => (
@@ -278,7 +280,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
               void moveStory(activeStory.id, value === 'none' ? null : value)
             }
           >
-            <SelectTrigger className="h-8 w-44 text-xs" aria-label={t('workspace.collection')}>
+            <SelectTrigger className="h-9 min-w-[8rem] flex-1 text-xs sm:h-8 sm:w-44 sm:flex-none" aria-label={t('workspace.collection')}>
               <SelectValue placeholder={t('workspace.collection')} />
             </SelectTrigger>
             <SelectContent>
@@ -320,7 +322,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
           ) : null}
           <div
             className={cn(
-              'min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4 md:px-5',
+              'min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4 md:px-5',
             )}
           >
             <StoryBookReader
@@ -343,7 +345,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
       ) : (
         <div
           className={cn(
-            'flex-1 overflow-y-auto',
+            'flex-1 overflow-y-auto overscroll-y-contain',
           )}
         >
           <div className="mx-auto max-w-3xl space-y-3 p-4">

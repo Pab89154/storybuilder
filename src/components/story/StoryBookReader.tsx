@@ -153,7 +153,7 @@ function InlineBookPage({
   return (
     <div
       className={cn(
-        'book-paper flex h-full min-h-0 w-full flex-col rounded-2xl border border-stone-200/80 px-6 py-6 md:px-8 md:py-8',
+        'book-paper flex h-full min-h-0 w-full flex-col rounded-2xl border border-stone-200/80 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8',
         isBookmarked && 'ring-2 ring-[var(--color-primary)]/30',
       )}
     >
@@ -320,7 +320,7 @@ function ReaderToolbar({
         <Button variant="outline" size="icon" className={compact ? 'h-7 w-7' : undefined} onClick={() => onGoToSpread(spreadIndex - 1)} disabled={spreadIndex === 0} title={t('reader.prevSpread')}>
           <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
-        <span className="min-w-[8rem] text-center text-xs font-medium">
+        <span className="min-w-0 flex-1 text-center text-xs font-medium sm:min-w-[8rem] sm:flex-none">
           {isFullPage ? (
             <>
               {pageLabel} · {t('reader.spreadCounter', { spread: spreadIndex + 1, totalSpreads })}
@@ -546,7 +546,7 @@ export function StoryBookReader({
 
   const inlinePage = inlinePages[Math.min(currentPage, inlinePages.length - 1)] ?? inlinePages[0]
   const inlineBookmarked = bookmarkPageIndex === currentPage
-  const inlinePageShell = fillHeight ? 'min-h-0 flex-1' : 'min-h-[min(70vh,720px)]'
+  const inlinePageShell = fillHeight ? 'min-h-0 flex-1' : 'min-h-[min(70dvh,720px)]'
 
   return (
     <>

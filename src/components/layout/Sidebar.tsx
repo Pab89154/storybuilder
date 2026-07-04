@@ -3,7 +3,6 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  FolderPlus,
   Library,
   PanelLeft,
   PanelLeftClose,
@@ -120,7 +119,12 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     folders,
     isActive: activeStoryId === story.id,
     inCollection,
-    onLoad: (id: string) => void loadStory(id),
+    onLoad: (id: string) => {
+      void loadStory(id)
+      if (!collapsed && window.matchMedia('(max-width: 767px)').matches) {
+        onToggleCollapsed()
+      }
+    },
     onRename: (id: string, title: string) => void renameStory(id, title),
     onMove: (id: string, folderId: string | null) => void moveStory(id, folderId),
     onDelete: (id: string) => void removeStory(id),
@@ -266,7 +270,13 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
   return (
     <>
-    <aside className="flex h-full w-80 min-w-0 shrink-0 flex-col overflow-hidden border-r bg-[var(--color-sidebar)] transition-[width] duration-200">
+    <aside
+      className={cn(
+        'flex h-full shrink-0 flex-col overflow-hidden border-r bg-[var(--color-sidebar)] transition-[width] duration-200',
+        'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:max-w-[min(20rem,92vw)] max-md:shadow-2xl',
+        'w-80 min-w-0',
+      )}
+    >
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
@@ -291,7 +301,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
             {t('sidebar.newStory')}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setShowNewFolder(true)}>
-            <FolderPlus className="h-4 w-4" />
+            <Library className="h-4 w-4" />
             {t('sidebar.collection')}
           </Button>
         </div>

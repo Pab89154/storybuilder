@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PaginationLayout } from '@/lib/storyPagination'
 import { CHARS_PER_LINE, LINES_PER_PAGE } from '@/lib/storyPagination'
 
@@ -83,6 +83,8 @@ function useBookLayout(fontSizePx: number, mode: BookLayoutMode) {
   const [layout, setLayout] = useState<PaginationLayout | null>(null)
   const [lineHeightPx, setLineHeightPx] = useState(lineHeightForFont(fontSizePx))
   const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null)
+  const layoutRef = useRef<PaginationLayout | null>(null)
+  const lineHeightRef = useRef(lineHeightForFont(fontSizePx))
 
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     setContainerNode(node)
@@ -91,24 +93,45 @@ function useBookLayout(fontSizePx: number, mode: BookLayoutMode) {
   useEffect(() => {
     if (!containerNode) return
 
+    let debounceId: ReturnType<typeof setTimeout> | null = null
+    let rafId: number | null = null
+
     const applyMeasure = () => {
       const result = measureElement(containerNode, fontSizePx, mode)
       if (!result) return
-      setLayout(result.layout)
-      setLineHeightPx(result.lineHeightPx)
+
+      const { layout: nextLayout, lineHeightPx: nextLineHeight } = result
+      if (
+        layoutsEqual(layoutRef.current, nextLayout) &&
+        lineHeightRef.current === nextLineHeight
+      ) {
+        return
+      }
+
+      layoutRef.current = nextLayout
+      lineHeightRef.current = nextLineHeight
+      setLayout(nextLayout)
+      setLineHeightPx(nextLineHeight)
+    }
+
+    const scheduleMeasure = () => {
+      if (debounceId) clearTimeout(debounceId)
+      debounceId = setTimeout(() => {
+        debounceId = null
+        if (rafId !== null) window.cancelAnimationFrame(rafId)
+        rafId = window.requestAnimationFrame(applyMeasure)
+      }, 120)
     }
 
     applyMeasure()
-    const raf = window.requestAnimationFrame(applyMeasure)
 
-    const observer = new ResizeObserver(applyMeasure)
+    const observer = new ResizeObserver(scheduleMeasure)
     observer.observe(containerNode)
-    window.addEventListener('resize', applyMeasure)
 
     return () => {
-      window.cancelAnimationFrame(raf)
+      if (debounceId) clearTimeout(debounceId)
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
       observer.disconnect()
-      window.removeEventListener('resize', applyMeasure)
     }
   }, [containerNode, fontSizePx, mode])
 

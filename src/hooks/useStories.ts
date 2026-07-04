@@ -13,7 +13,7 @@ import {
   updateFolder,
   updateStory,
 } from '@/db/database'
-import { ensureDbStartupInit } from '@/lib/dbStartup'
+import { ensureStoriesBootstrapped } from '@/lib/storiesBootstrap'
 import { collectGenres, storyMatchesQuery } from '@/lib/search'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
 import { useStoryStore } from '@/store/storyStore'
@@ -293,8 +293,7 @@ export function useStories() {
   )
 
   useEffect(() => {
-    void refreshStories()
-    void ensureDbStartupInit().then(() => refreshStories())
+    ensureStoriesBootstrapped(refreshStories)
   }, [refreshStories])
 
   const availableGenres = useMemo(() => collectGenres(stories), [stories])
