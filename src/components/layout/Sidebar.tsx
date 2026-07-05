@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { SidebarStoryDnD, type StoryGroupConfig } from '@/components/layout/SidebarStoryDnD'
+import { NightModeToggle } from '@/components/layout/NightModeToggle'
 import { UiLanguageSwitcher } from '@/components/layout/UiLanguageSwitcher'
 import { NewStoryDialog } from '@/components/story/NewStoryDialog'
 import { LanguageFilterSelect } from '@/components/story/LanguageSelect'
@@ -235,40 +235,41 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const collapsedRail = (
     <div
       className={cn(
-        'absolute inset-y-0 left-0 z-10 flex w-14 flex-col items-center gap-3 border-r bg-[var(--color-sidebar)] pb-4 pt-7',
-        collapsed ? 'max-md:hidden md:flex' : 'hidden',
+        'absolute inset-y-0 left-0 z-10 flex w-14 flex-col items-center gap-2 border-r bg-[var(--color-sidebar)] pb-4 pt-6',
+        collapsed ? 'flex' : 'hidden',
       )}
     >
       <Button
         variant="ghost"
         size="icon"
-        className="h-11 w-11"
+        className="h-9 w-9"
         onClick={onToggleCollapsed}
         title={t('sidebar.expand')}
         aria-label={t('sidebar.expand')}
       >
-        <PanelLeft className="h-6 w-6" />
+        <PanelLeft className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        className="h-11 w-11 text-[var(--color-primary)] hover:text-[var(--color-primary)]"
+        className="h-9 w-9 text-[var(--color-primary)] hover:text-[var(--color-primary)]"
         onClick={() => setShowNewStory(true)}
         title={t('sidebar.newStory')}
         aria-label={t('sidebar.newStory')}
       >
-        <Sparkles className="h-6 w-6" />
+        <Plus className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        className="h-11 w-11"
+        className="h-9 w-9"
         onClick={openNewCollection}
         title={t('sidebar.collection')}
         aria-label={t('sidebar.collection')}
       >
-        <FolderPlus className="h-6 w-6" />
+        <FolderPlus className="h-5 w-5" />
       </Button>
+      <NightModeToggle size="rail" />
     </div>
   )
 
@@ -280,15 +281,17 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           'relative flex h-full shrink-0 overflow-hidden border-r bg-[var(--color-sidebar)]',
           'transition-[width,transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
           collapsed ? 'w-14' : 'w-80',
-          'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(20rem,92vw)]',
-          collapsed
-            ? 'max-md:-translate-x-full max-md:shadow-none max-md:pointer-events-none'
-            : 'max-md:translate-x-0 max-md:shadow-2xl',
+          !collapsed &&
+            'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(20rem,92vw)] max-md:translate-x-0 max-md:shadow-2xl',
         )}
       >
         {collapsedRail}
 
-        <div className="flex h-full w-80 min-w-0 flex-col overflow-hidden">
+        <div
+          className={cn(
+            collapsed ? 'hidden' : 'flex h-full w-80 min-w-0 flex-col overflow-hidden',
+          )}
+        >
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
@@ -319,8 +322,11 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           </Button>
         </div>
 
-        <div className="mt-3">
-          <UiLanguageSwitcher />
+        <div className="mt-3 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <UiLanguageSwitcher />
+          </div>
+          <NightModeToggle size="compact" />
         </div>
 
         {showNewFolder && (
@@ -346,6 +352,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           <Input
             className="pl-9"
             placeholder={t('sidebar.searchPlaceholder')}
+            aria-label={t('sidebar.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

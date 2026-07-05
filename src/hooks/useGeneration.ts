@@ -17,259 +17,259 @@ import { useLLM } from '@/hooks/useLLM'
 import { useUiT } from '@/i18n/context'
 import type { Paragraph } from '@/types/story'
 
+const generationRunRef = { current: 0 }
+
+type GenerationCallbacks = ReturnType<typeof buildCallbacksForRun>
+
+function buildCallbacksForRun(storyId: string, runId: number, signal?: AbortSignal) {
+  return {
+    onToken: (token: string) => {
+      if (generationRunRef.current !== runId) return
+      useStoryStore.getState().appendStreamingToken(token)
+    },
+    onParagraphStart: (paragraph: Paragraph) => {
+      if (generationRunRef.current !== runId) return
+      useStoryStore.getState().upsertParagraph({ ...paragraph, content: '' })
+      useStoryStore.getState().setStreaming(paragraph.id, '')
+    },
+    onParagraphComplete: (paragraph: Paragraph) => {
+      if (generationRunRef.current !== runId) return
+      useStoryStore.getState().upsertParagraph(paragraph)
+      useStoryStore.getState().setStreaming(null, '')
+    },
+    onProgress: (_words: number, target: number) => {
+      void target
+      void storyId
+    },
+    signal,
+  }
+}
+
 export function useGeneration() {
   const { isReady, isLoading } = useLLM()
   const t = useUiT()
-  const {
-    activeStory,
-    isGenerating,
-    setGenerating,
-    setStreaming,
-    appendStreamingToken,
-    setGenerationError,
-    upsertParagraph,
-  } = useStoryStore()
+  const isGenerating = useStoryStore((state) => state.isGenerating)
+  const { setGenerating, setStreaming, setGenerationError } = useStoryStore()
   const { loadStory, refreshStories } = useStories()
   const abortRef = useRef<AbortController | null>(null)
-
-  const buildCallbacks = useCallback(
-    () => ({
-      onToken: (token: string) => {
-        appendStreamingToken(token)
-      },
-      onParagraphStart: (paragraph: Paragraph) => {
-        upsertParagraph({ ...paragraph, content: '' })
-        setStreaming(paragraph.id, '')
-      },
-      onParagraphComplete: (paragraph: Paragraph) => {
-        upsertParagraph(paragraph)
-        setStreaming(null, '')
-      },
-      onProgress: (_words: number, target: number) => {
-        void target
-      },
-      signal: abortRef.current?.signal,
-    }),
-    [appendStreamingToken, setStreaming, upsertParagraph],
-  )
 
   const ensureEngine = useCallback(async () => {
     const { engine } = await initEngine()
     return engine
   }, [])
 
+  const finishGenerationRun = useCallback(
+    async (storyId: string, runId: number) => {
+      if (generationRunRef.current !== runId) return
+      await refreshStories()
+      if (useStoryStore.getState().activeStoryId === storyId) {
+        await loadStory(storyId, { onlyIfStillActive: true })
+      }
+      if (generationRunRef.current !== runId) return
+      setGenerating(false, null)
+      setStreaming(null, '')
+      if (generationRunRef.current === runId) {
+        abortRef.current = null
+      }
+    },
+    [loadStory, refreshStories, setGenerating, setStreaming],
+  )
+
   const runGeneration = useCallback(
-    async (action: () => Promise<void>) => {
-      if (!activeStory || isGenerating) return
+    async (action: (callbacks: GenerationCallbacks) => Promise<void>) => {
+      const story = useStoryStore.getState().activeStory
+      if (!story || useStoryStore.getState().isGenerating) return
+
+      const storyId = story.id
+      const runId = ++generationRunRef.current
       setGenerationError(null)
-      setGenerating(true)
+      setGenerating(true, storyId)
       abortRef.current = new AbortController()
+      const callbacks = buildCallbacksForRun(storyId, runId, abortRef.current.signal)
 
       try {
-        await action()
+        await action(callbacks)
       } catch (err) {
+        if (generationRunRef.current !== runId) return
         if (err instanceof DOMException && err.name === 'AbortError') {
           // Sync DB after cancel (may have removed empty partial paragraphs).
         } else {
           setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
         }
       } finally {
-        if (activeStory) {
-          await loadStory(activeStory.id)
-          await refreshStories()
-        }
-        setGenerating(false)
-        setStreaming(null, '')
-        abortRef.current = null
+        await finishGenerationRun(storyId, runId)
       }
     },
-    [
-      activeStory,
-      isGenerating,
-      loadStory,
-      refreshStories,
-      setGenerating,
-      setGenerationError,
-      setStreaming,
-      t,
-    ],
+    [finishGenerationRun, setGenerating, setGenerationError, t],
   )
 
   const generate = useCallback(async () => {
-    if (!activeStory || isGenerating) return
-    if (!activeStory.prompt.trim()) {
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating) return
+    if (!story.prompt.trim()) {
       setGenerationError(t('errors.promptRequired'))
       return
     }
 
-    await runGeneration(async () => {
+    await runGeneration(async (callbacks) => {
       const engine = await ensureEngine()
-      await generateStoryFromScratch(
-        engine,
-        activeStory,
-        activeStory.characters,
-        buildCallbacks(),
-      )
+      const current = useStoryStore.getState().activeStory
+      if (!current) return
+      await generateStoryFromScratch(engine, current, current.characters, callbacks)
     })
-  }, [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration, setGenerationError, t])
+  }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const generateAutomatic = useCallback(async () => {
-    if (!activeStory || isGenerating) return
-    if (activeStory.plannedChapterCount < 2) {
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating) return
+    if (story.plannedChapterCount < 2) {
       setGenerationError(t('errors.minChapters'))
       return
     }
 
-    await runGeneration(async () => {
+    await runGeneration(async (callbacks) => {
       const engine = await ensureEngine()
+      const current = useStoryStore.getState().activeStory
+      if (!current) return
       await generateOrContinueAutomaticBook(
         engine,
-        activeStory,
-        activeStory.characters,
-        activeStory.chapters,
-        activeStory.paragraphs,
-        buildCallbacks(),
+        current,
+        current.characters,
+        current.chapters,
+        current.paragraphs,
+        callbacks,
       )
     })
-  }, [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration, setGenerationError, t])
+  }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const continueAdvanced = useCallback(async () => {
-    if (!activeStory || isGenerating) return
-    if (activeStory.chapters.length === 0) {
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating) return
+    if (story.chapters.length === 0) {
       setGenerationError(t('errors.noChaptersToContinue'))
       return
     }
 
-    await runGeneration(async () => {
+    await runGeneration(async (callbacks) => {
       const engine = await ensureEngine()
+      const current = useStoryStore.getState().activeStory
+      if (!current) return
       await continueAdvancedBook(
         engine,
-        activeStory,
-        activeStory.characters,
-        activeStory.chapters,
-        activeStory.paragraphs,
-        buildCallbacks(),
+        current,
+        current.characters,
+        current.chapters,
+        current.paragraphs,
+        callbacks,
       )
     })
-  }, [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration, setGenerationError, t])
+  }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const addAdvancedChapter = useCallback(
     async (chapterBrief: string) => {
-      if (!activeStory || isGenerating) return
-      if (activeStory.isBookFinished) {
+      const story = useStoryStore.getState().activeStory
+      if (!story || useStoryStore.getState().isGenerating) return
+      if (story.isBookFinished) {
         setGenerationError(t('errors.bookAlreadyFinished'))
         return
       }
 
-      await runGeneration(async () => {
+      await runGeneration(async (callbacks) => {
         const engine = await ensureEngine()
+        const current = useStoryStore.getState().activeStory
+        if (!current) return
         await generateAdvancedChapter(
           engine,
-          activeStory,
-          activeStory.characters,
-          activeStory.chapters,
-          activeStory.paragraphs,
+          current,
+          current.characters,
+          current.chapters,
+          current.paragraphs,
           chapterBrief,
-          buildCallbacks(),
+          callbacks,
         )
       })
     },
-    [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration, setGenerationError, t],
+    [ensureEngine, runGeneration, setGenerationError, t],
   )
 
   const finishBook = useCallback(async () => {
-    if (!activeStory || isGenerating) return
-    if (activeStory.chapters.length === 0) {
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating) return
+    if (story.chapters.length === 0) {
       setGenerationError(t('errors.addChapterBeforeFinish'))
       return
     }
-    if (activeStory.isBookFinished) {
+    if (story.isBookFinished) {
       setGenerationError(t('errors.bookAlreadyFinished'))
       return
     }
 
-    await runGeneration(async () => {
+    await runGeneration(async (callbacks) => {
       const engine = await ensureEngine()
+      const current = useStoryStore.getState().activeStory
+      if (!current) return
       await finishAdvancedBook(
         engine,
-        activeStory,
-        activeStory.characters,
-        activeStory.chapters,
-        activeStory.paragraphs,
-        buildCallbacks(),
+        current,
+        current.characters,
+        current.chapters,
+        current.paragraphs,
+        callbacks,
       )
     })
-  }, [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration, setGenerationError, t])
+  }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const continueStoryAction = useCallback(async () => {
-    if (!activeStory || isGenerating || activeStory.paragraphs.length === 0) return
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating || story.paragraphs.length === 0) return
 
-    await runGeneration(async () => {
+    await runGeneration(async (callbacks) => {
       const engine = await ensureEngine()
-      await continueStory(
-        engine,
-        activeStory,
-        activeStory.characters,
-        activeStory.paragraphs,
-        buildCallbacks(),
-      )
+      const current = useStoryStore.getState().activeStory
+      if (!current) return
+      await continueStory(engine, current, current.characters, current.paragraphs, callbacks)
     })
-  }, [activeStory, isGenerating, buildCallbacks, ensureEngine, runGeneration])
+  }, [ensureEngine, runGeneration])
 
   const regenerate = useCallback(
     async (paragraphId: string) => {
-      if (!activeStory || isGenerating) return
+      const story = useStoryStore.getState().activeStory
+      if (!story || useStoryStore.getState().isGenerating) return
 
+      const storyId = story.id
+      const runId = ++generationRunRef.current
       setGenerationError(null)
-      setGenerating(true)
+      setGenerating(true, storyId)
       abortRef.current = new AbortController()
+      const callbacks = buildCallbacksForRun(storyId, runId, abortRef.current.signal)
 
       try {
         const engine = await ensureEngine()
         await regenerateParagraph(
           engine,
-          activeStory,
-          activeStory.characters,
-          activeStory.paragraphs,
+          story,
+          story.characters,
+          story.paragraphs,
           paragraphId,
-          buildCallbacks(),
+          callbacks,
         )
-        await loadStory(activeStory.id)
-        await refreshStories()
       } catch (err) {
+        if (generationRunRef.current !== runId) return
         if (err instanceof DOMException && err.name === 'AbortError') {
           // handled in finally
         } else {
           setGenerationError(err instanceof Error ? err.message : t('errors.regenerateFailed'))
         }
       } finally {
-        if (activeStory) {
-          await loadStory(activeStory.id)
-        }
-        setGenerating(false)
-        setStreaming(null, '')
-        abortRef.current = null
+        await finishGenerationRun(storyId, runId)
       }
     },
-    [
-      activeStory,
-      isGenerating,
-      buildCallbacks,
-      ensureEngine,
-      loadStory,
-      refreshStories,
-      setGenerating,
-      setGenerationError,
-      setStreaming,
-      t,
-    ],
+    [ensureEngine, finishGenerationRun, setGenerating, setGenerationError, t],
   )
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
-    setGenerating(false)
-    setStreaming(null, '')
-  }, [setGenerating, setStreaming])
+  }, [])
 
   return {
     isReady,

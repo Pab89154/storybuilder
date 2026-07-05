@@ -212,17 +212,12 @@ export async function generateOrContinueAutomaticBook(
   existingParagraphs: Paragraph[],
   callbacks: GenerationCallbacks,
 ): Promise<{ chapters: Chapter[]; paragraphs: Paragraph[] }> {
-  let chapters =
+  const chapters =
     existingChapters.length > 0
       ? [...existingChapters].sort((a, b) => a.order - b.order)
       : await createChapterOutline(engine, story, characters, callbacks)
 
   let allParagraphs = [...existingParagraphs]
-
-  let completedWords = chapters.reduce((sum, chapter) => {
-    if (!isChapterComplete(chapter, allParagraphs, chapters)) return sum
-    return sum + getChapterWordCount(chapter.id, allParagraphs, undefined, chapters)
-  }, 0)
 
   const totalTarget = chapters.reduce((sum, chapter) => sum + chapter.targetWordCount, 0)
 
@@ -265,7 +260,7 @@ export async function generateOrContinueAutomaticBook(
     )
 
     allParagraphs = [...allParagraphs, ...newParagraphs]
-    completedWords = chapters.reduce(
+    const completedWords = chapters.reduce(
       (sum, item) => sum + getChapterWordCount(item.id, allParagraphs, undefined, chapters),
       0,
     )
@@ -485,9 +480,15 @@ export async function finishAdvancedBook(
     },
   )
 
-  await updateStory(story.id, { isBookFinished: true })
+  const combined = [...allParagraphs, ...newParagraphs]
+  if (
+    !callbacks.signal?.aborted &&
+    isChapterComplete(chapter, combined, [...sorted, chapter])
+  ) {
+    await updateStory(story.id, { isBookFinished: true })
+  }
   return {
     chapter,
-    paragraphs: [...allParagraphs, ...newParagraphs],
+    paragraphs: combined,
   }
 }

@@ -175,6 +175,7 @@ export function StoryListItem({
                 size="icon"
                 className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
                 onClick={(e) => e.stopPropagation()}
+                aria-label={t('storyList.deleteTitle')}
               >
                 <Trash2 className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
               </Button>

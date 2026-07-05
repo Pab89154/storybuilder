@@ -22,12 +22,14 @@ interface DuplicateStoryDialogProps {
   story: StoryWithDetails
   disabled?: boolean
   buttonSize?: 'default' | 'sm'
+  buttonClassName?: string
 }
 
 export function DuplicateStoryDialog({
   story,
   disabled,
   buttonSize = 'default',
+  buttonClassName,
 }: DuplicateStoryDialogProps) {
   const t = useUiT()
   const { duplicateAndTranslate, isDuplicating, duplicateProgress } = useDuplicateStory()
@@ -46,7 +48,12 @@ export function DuplicateStoryDialog({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size={buttonSize} disabled={disabled || isDuplicating}>
+        <Button
+          variant="outline"
+          size={buttonClassName ? undefined : buttonSize}
+          className={buttonClassName}
+          disabled={disabled || isDuplicating}
+        >
           {isDuplicating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

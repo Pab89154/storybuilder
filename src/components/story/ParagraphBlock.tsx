@@ -34,14 +34,14 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
   const handleSave = async () => {
     if (!activeStory) return
     await updateParagraph(paragraph.id, { content: editContent, source: 'user' })
-    await loadStory(activeStory.id)
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
     setIsEditing(false)
   }
 
   const handleDelete = async () => {
     if (!activeStory) return
     await deleteParagraph(paragraph.id)
-    await loadStory(activeStory.id)
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
 
   const isFlow = variant === 'flow'
@@ -67,7 +67,7 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
           className={cn(
             'flex justify-end gap-0.5',
             isFlow
-              ? 'absolute -right-1 top-0 z-10 opacity-0 transition-opacity group-hover/para:opacity-100 group-focus-within/para:opacity-100'
+              ? 'absolute -right-1 top-0 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/para:opacity-100 sm:group-focus-within/para:opacity-100'
               : 'mb-2',
           )}
         >

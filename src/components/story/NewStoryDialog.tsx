@@ -58,7 +58,7 @@ export function NewStoryDialog({ open, onOpenChange, onCreate }: NewStoryDialogP
         <div className="grid gap-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="new-story-language">{t('workspace.storyLanguage')}</Label>
-            <LanguageSelect value={language} onValueChange={setLanguage} />
+            <LanguageSelect id="new-story-language" value={language} onValueChange={setLanguage} />
           </div>
 
           <div className="space-y-2">

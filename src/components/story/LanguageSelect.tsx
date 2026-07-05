@@ -11,13 +11,12 @@ import { STORY_LANGUAGES } from '@/lib/storyLanguageMeta'
 import type { Language } from '@/types/story'
 
 function LanguageOption({ language }: { language: Language }) {
-  const t = useUiT()
   return (
     <span className="flex items-center gap-2">
       <span className="text-base leading-none" aria-hidden>
         {languageFlag(language)}
       </span>
-      {languageLabel(language, t)}
+      {languageLabel(language)}
     </span>
   )
 }
@@ -27,6 +26,7 @@ interface LanguageSelectProps {
   onValueChange: (language: Language) => void
   className?: string
   triggerClassName?: string
+  id?: string
 }
 
 export function LanguageSelect({
@@ -34,18 +34,17 @@ export function LanguageSelect({
   onValueChange,
   className,
   triggerClassName,
+  id,
 }: LanguageSelectProps) {
-  const t = useUiT()
-
   return (
     <Select value={value} onValueChange={(v) => onValueChange(v as Language)}>
-      <SelectTrigger className={triggerClassName}>
+      <SelectTrigger id={id} className={triggerClassName}>
         <SelectValue>
           <span className="flex items-center gap-2">
             <span className="text-base leading-none" aria-hidden>
               {languageFlag(value)}
             </span>
-            {languageLabel(value, t)}
+            {languageLabel(value)}
           </span>
         </SelectValue>
       </SelectTrigger>

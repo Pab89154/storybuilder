@@ -49,7 +49,9 @@ export function useStories() {
   } = useStoryStore()
 
   const pendingMetaRef = useRef<Partial<Story>>({})
+  const pendingMetaStoryIdRef = useRef<string | null>(null)
   const persistMetaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadStoryRequestRef = useRef(0)
 
   const refreshStories = useCallback(async () => {
     const [allStories, allFolders] = await Promise.all([listStories(), listFolders()])
@@ -67,11 +69,13 @@ export function useStories() {
   )
 
   const flushStoryMeta = useCallback(async () => {
-    if (!activeStory) return
+    const storyId = pendingMetaStoryIdRef.current
     const pending = pendingMetaRef.current
     pendingMetaRef.current = {}
-    await flushStoryMetaForStory(activeStory.id, pending)
-  }, [activeStory, flushStoryMetaForStory])
+    pendingMetaStoryIdRef.current = null
+    if (!storyId || Object.keys(pending).length === 0) return
+    await flushStoryMetaForStory(storyId, pending)
+  }, [flushStoryMetaForStory])
 
   useEffect(() => {
     const storyIdAtMount = activeStoryId
@@ -81,16 +85,28 @@ export function useStories() {
         persistMetaTimerRef.current = null
       }
       const pending = pendingMetaRef.current
+      const pendingStoryId = pendingMetaStoryIdRef.current
       pendingMetaRef.current = {}
-      if (storyIdAtMount && Object.keys(pending).length > 0) {
+      pendingMetaStoryIdRef.current = null
+      if (pendingStoryId && Object.keys(pending).length > 0) {
+        void flushStoryMetaForStory(pendingStoryId, pending)
+      } else if (storyIdAtMount && Object.keys(pending).length > 0) {
         void flushStoryMetaForStory(storyIdAtMount, pending)
       }
     }
   }, [activeStoryId, flushStoryMetaForStory])
 
   const loadStory = useCallback(
-    async (storyId: string) => {
+    async (storyId: string, options?: { onlyIfStillActive?: boolean }) => {
+      const requestId = ++loadStoryRequestRef.current
       const details = await getStoryWithDetails(storyId)
+      if (requestId !== loadStoryRequestRef.current) return details
+      if (
+        options?.onlyIfStillActive &&
+        useStoryStore.getState().activeStoryId !== storyId
+      ) {
+        return details
+      }
       setActiveStory(details)
       return details
     },
@@ -162,6 +178,7 @@ export function useStories() {
       if (!activeStory) return
 
       updateActiveStoryMeta(updates)
+      pendingMetaStoryIdRef.current = activeStory.id
       pendingMetaRef.current = { ...pendingMetaRef.current, ...updates }
 
       if (options?.persistNow) {
@@ -188,12 +205,12 @@ export function useStories() {
       await setStoryBookmarkPage(activeStory.id, pageIndex)
       updateActiveStoryMeta({ bookmarkPageIndex: pageIndex })
       setStories(
-        stories.map((story) =>
+        useStoryStore.getState().stories.map((story) =>
           story.id === activeStory.id ? { ...story, bookmarkPageIndex: pageIndex } : story,
         ),
       )
     },
-    [activeStory, stories, setStories, updateActiveStoryMeta],
+    [activeStory, setStories, updateActiveStoryMeta],
   )
 
   const addFolder = useCallback(
@@ -289,7 +306,7 @@ export function useStories() {
         await refreshStories()
       }
     },
-    [activeStoryId, stories, setStories, updateActiveStoryMeta],
+    [activeStoryId, stories, setStories, updateActiveStoryMeta, refreshStories],
   )
 
   useEffect(() => {

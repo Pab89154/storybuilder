@@ -92,15 +92,56 @@ export async function duplicateStoryWithTranslation(
         `Superpower description for character ${char.name}`,
       )
     }
+    let petSuperpowerDescription = char.petSuperpowerDescription
+    if (!sameLanguage && char.petHasSuperpowers && char.petSuperpowerDescription?.trim()) {
+      petSuperpowerDescription = await translateText(
+        engine,
+        char.petSuperpowerDescription,
+        targetLanguage,
+        `Pet superpower description for character ${char.name}`,
+      )
+    }
+    let petSpecies = char.petSpecies
+    if (!sameLanguage && char.hasPet && char.petSpecies?.trim()) {
+      petSpecies = await translateText(
+        engine,
+        char.petSpecies,
+        targetLanguage,
+        `Pet species for character ${char.name}`,
+      )
+    }
+    let species = char.species
+    if (!sameLanguage && !(char.isHuman ?? true) && char.species?.trim()) {
+      species = await translateText(
+        engine,
+        char.species,
+        targetLanguage,
+        `Species for character ${char.name}`,
+      )
+    }
+    let petName = char.petName
+    if (!sameLanguage && char.hasPet && char.petName?.trim()) {
+      petName = await translateText(
+        engine,
+        char.petName,
+        targetLanguage,
+        `Pet name for character ${char.name}`,
+      )
+    }
     characters.push({
       name: char.name,
       alignment: char.alignment,
       gender: char.gender,
       age: char.age,
       isHuman: char.isHuman ?? true,
-      species: char.species,
+      species,
       hasSuperpowers: char.hasSuperpowers,
       superpowerDescription,
+      hasPet: char.hasPet ?? false,
+      petName,
+      petSpecies,
+      petHasSuperpowers: char.petHasSuperpowers ?? false,
+      petSuperpowerDescription,
     })
     report(
       sameLanguage
@@ -162,6 +203,17 @@ export async function duplicateStoryWithTranslation(
     )
   }
 
+  const storyBeginning = sameLanguage
+    ? source.storyBeginning
+    : source.storyBeginning.trim()
+      ? await translateText(engine, source.storyBeginning, targetLanguage, 'Story beginning')
+      : source.storyBeginning
+  const storyEnding = sameLanguage
+    ? source.storyEnding
+    : source.storyEnding.trim()
+      ? await translateText(engine, source.storyEnding, targetLanguage, 'Story ending')
+      : source.storyEnding
+
   return {
     title: title.trim() || untitledStoryTitle(targetLanguage),
     prompt,
@@ -170,12 +222,12 @@ export async function duplicateStoryWithTranslation(
     folderId: source.folderId,
     creationMode: source.creationMode,
     plannedChapterCount: source.plannedChapterCount,
-    storyBeginning: source.storyBeginning,
-    storyEnding: source.storyEnding,
+    storyBeginning,
+    storyEnding,
     chapterWordTarget: source.chapterWordTarget,
     readerAge: source.readerAge,
     finishPercent: source.finishPercent,
-    isBookFinished: source.isBookFinished,
+    isBookFinished: false,
     characters,
     chapters,
     paragraphs,

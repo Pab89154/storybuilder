@@ -1,4 +1,5 @@
 import { languageDisplay } from '@/lib/language'
+import { groupParagraphsByChapter } from '@/lib/chapterParagraphs'
 import type { Character, Chapter, Paragraph, Story } from '@/types/story'
 
 function formatCharacter(char: Character): string {
@@ -13,7 +14,14 @@ function formatCharacter(char: Character): string {
   const powers = char.hasSuperpowers
     ? char.superpowerDescription?.trim() || 'Has superpowers'
     : 'No superpowers'
-  return `- ${char.name} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}`
+  const petPart = char.hasPet
+    ? char.petHasSuperpowers
+      ? `Pet: ${char.petName?.trim() || 'Unnamed'} (${char.petSpecies?.trim() || 'unknown species'}) — ${
+          char.petSuperpowerDescription?.trim() || 'has superpowers'
+        }`
+      : `Pet: ${char.petName?.trim() || 'Unnamed'} (${char.petSpecies?.trim() || 'unknown species'}) — no superpowers`
+    : 'No pet'
+  return `- ${char.name} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}. ${petPart}`
 }
 
 export function buildStoryText(
@@ -39,9 +47,11 @@ export function buildStoryText(
 
   lines.push('Story:', '')
   if (chapters.length > 0) {
-    for (const chapter of chapters) {
+    for (const { chapter, paragraphs: chapterParagraphs } of groupParagraphsByChapter(
+      chapters,
+      paragraphs,
+    )) {
       lines.push(`## ${chapter.title}`, '')
-      const chapterParagraphs = paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id)
       for (const paragraph of chapterParagraphs) {
         lines.push(paragraph.content.trim(), '')
       }

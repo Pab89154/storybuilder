@@ -28,10 +28,12 @@ interface StoryState {
   languageFilter: LanguageFilter
   folderFilter: FolderFilter
   isGenerating: boolean
+  generatingStoryId: string | null
   streamingParagraphId: string | null
   streamingContent: string
   generationError: string | null
   wordCount: number
+  advancedChapterBrief: string
   setStories: (stories: Story[]) => void
   setFolders: (folders: Folder[]) => void
   setActiveStory: (story: StoryWithDetails | null) => void
@@ -48,11 +50,12 @@ interface StoryState {
   updateActiveChapters: (chapters: Chapter[]) => void
   updateActiveParagraphs: (paragraphs: Paragraph[]) => void
   upsertParagraph: (paragraph: Paragraph) => void
-  setGenerating: (isGenerating: boolean) => void
+  setGenerating: (isGenerating: boolean, generatingStoryId?: string | null) => void
   setStreaming: (paragraphId: string | null, content?: string) => void
   appendStreamingToken: (token: string) => void
   setGenerationError: (error: string | null) => void
   setWordCount: (count: number) => void
+  setAdvancedChapterBrief: (brief: string) => void
 }
 
 function activeStoryWordCount(state: {
@@ -100,21 +103,36 @@ export const useStoryStore = create<StoryState>((set, get) => ({
   languageFilter: 'all',
   folderFilter: 'all',
   isGenerating: false,
+  generatingStoryId: null,
   streamingParagraphId: null,
   streamingContent: '',
   generationError: null,
   wordCount: 0,
+  advancedChapterBrief: '',
   setStories: (stories) => set({ stories }),
   setFolders: (folders) => set({ folders }),
   setActiveStory: (activeStory) =>
-    set({
-      activeStory,
-      activeStoryId: activeStory?.id ?? null,
-      wordCount: activeStoryWordCount({
+    set((state) => {
+      const nextId = activeStory?.id ?? null
+      const storyChanged = nextId !== state.activeStoryId
+      const streamingParagraphId = storyChanged ? null : state.streamingParagraphId
+      const streamingContent = storyChanged ? '' : state.streamingContent
+      return {
         activeStory,
-        streamingParagraphId: get().streamingParagraphId,
-        streamingContent: get().streamingContent,
-      }),
+        activeStoryId: nextId,
+        ...(storyChanged
+          ? {
+              streamingParagraphId,
+              streamingContent,
+              advancedChapterBrief: '',
+            }
+          : {}),
+        wordCount: activeStoryWordCount({
+          activeStory,
+          streamingParagraphId,
+          streamingContent,
+        }),
+      }
     }),
   setActiveStoryId: (activeStoryId) => set({ activeStoryId }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -151,7 +169,7 @@ export const useStoryStore = create<StoryState>((set, get) => ({
   upsertParagraph: (paragraph) => {
     const state = get()
     const { activeStory } = state
-    if (!activeStory) return
+    if (!activeStory || paragraph.storyId !== activeStory.id) return
     const exists = activeStory.paragraphs.some((p) => p.id === paragraph.id)
     const paragraphs = exists
       ? activeStory.paragraphs.map((p) => (p.id === paragraph.id ? paragraph : p))
@@ -162,12 +180,19 @@ export const useStoryStore = create<StoryState>((set, get) => ({
       wordCount: activeStoryWordCount({ ...state, activeStory: nextStory }),
     })
   },
-  setGenerating: (isGenerating) =>
+  setGenerating: (isGenerating, generatingStoryId = null) =>
     set((state) => {
-      const streamingParagraphId = isGenerating ? state.streamingParagraphId : null
-      const streamingContent = isGenerating ? state.streamingContent : ''
+      const streamingParagraphId =
+        isGenerating && generatingStoryId === state.activeStoryId
+          ? state.streamingParagraphId
+          : null
+      const streamingContent =
+        isGenerating && generatingStoryId === state.activeStoryId
+          ? state.streamingContent
+          : ''
       return {
         isGenerating,
+        generatingStoryId: isGenerating ? generatingStoryId : null,
         streamingParagraphId,
         streamingContent,
         wordCount: activeStoryWordCount({
@@ -178,17 +203,33 @@ export const useStoryStore = create<StoryState>((set, get) => ({
       }
     }),
   setStreaming: (streamingParagraphId, content = '') =>
-    set((state) => ({
-      streamingParagraphId,
-      streamingContent: content,
-      wordCount: activeStoryWordCount({
-        ...state,
+    set((state) => {
+      if (
+        state.generatingStoryId &&
+        state.activeStoryId &&
+        state.generatingStoryId !== state.activeStoryId
+      ) {
+        return state
+      }
+      return {
         streamingParagraphId,
         streamingContent: content,
-      }),
-    })),
+        wordCount: activeStoryWordCount({
+          ...state,
+          streamingParagraphId,
+          streamingContent: content,
+        }),
+      }
+    }),
   appendStreamingToken: (token) =>
     set((state) => {
+      if (
+        state.generatingStoryId &&
+        state.activeStoryId &&
+        state.generatingStoryId !== state.activeStoryId
+      ) {
+        return state
+      }
       const streamingContent = state.streamingContent + token
       return {
         streamingContent,
@@ -197,4 +238,5 @@ export const useStoryStore = create<StoryState>((set, get) => ({
     }),
   setGenerationError: (generationError) => set({ generationError }),
   setWordCount: (wordCount) => set({ wordCount }),
+  setAdvancedChapterBrief: (advancedChapterBrief) => set({ advancedChapterBrief }),
 }))

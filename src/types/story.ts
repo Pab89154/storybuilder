@@ -23,6 +23,11 @@ export interface Character {
   species?: string
   hasSuperpowers: boolean
   superpowerDescription?: string
+  hasPet: boolean
+  petName?: string
+  petSpecies?: string
+  petHasSuperpowers: boolean
+  petSuperpowerDescription?: string
 }
 
 export interface Paragraph {

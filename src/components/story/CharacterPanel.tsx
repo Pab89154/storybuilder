@@ -12,6 +12,7 @@ import {
 import { addCharacter, deleteCharacter, updateCharacter } from '@/db/database'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
+import { generateRandomCharacter, isRandomCharacterName } from '@/lib/randomCharacter'
 import { cn } from '@/lib/utils'
 import type { Character, CharacterAlignment, CharacterGender } from '@/types/story'
 import type { ReactNode } from 'react'
@@ -36,7 +37,7 @@ function CharacterFieldRow({
         className,
       )}
     >
-      <Label className="text-xs text-stone-600">{label}</Label>
+      <Label className="text-xs text-[var(--color-muted-foreground)]">{label}</Label>
       <div className="min-w-0">{children}</div>
     </div>
   )
@@ -50,6 +51,11 @@ const emptyCharacter = {
   isHuman: true,
   hasSuperpowers: false,
   superpowerDescription: '',
+  hasPet: false,
+  petName: '',
+  petSpecies: '',
+  petHasSuperpowers: false,
+  petSuperpowerDescription: '',
 }
 
 export function formatCharacterSummary(
@@ -73,6 +79,11 @@ function formatCharacterDetailSummary(character: Character, t: (key: string) => 
   if (character.hasSuperpowers) {
     parts.push(character.superpowerDescription?.trim() || t('characters.superpowers'))
   }
+  if (character.hasPet) {
+    const petName = character.petName?.trim() || t('characters.unnamedPet')
+    const petSpecies = character.petSpecies?.trim()
+    parts.push(petSpecies ? `${petName} (${petSpecies})` : petName)
+  }
   return parts.join(' · ')
 }
 
@@ -85,12 +96,14 @@ function CharacterCard({
   compact,
   t,
   onUpdate,
+  onRandomize,
   onDelete,
 }: {
   character: Character
   compact?: boolean
   t: (key: string) => string
   onUpdate: (updates: Partial<Omit<Character, 'id' | 'storyId'>>) => void
+  onRandomize: () => void
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(() => isNewCharacterDraft(character))
@@ -123,6 +136,15 @@ function CharacterCard({
             <Input
               value={character.name}
               onChange={(e) => void onUpdate({ name: e.target.value })}
+              onBlur={() => {
+                if (isRandomCharacterName(character.name)) onRandomize()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && isRandomCharacterName(character.name)) {
+                  e.preventDefault()
+                  onRandomize()
+                }
+              }}
               placeholder={t('characters.namePlaceholder')}
               className={cn('min-w-0 flex-1 font-medium', compact && 'h-8 text-xs')}
             />
@@ -131,6 +153,7 @@ function CharacterCard({
               size="icon"
               className={cn('shrink-0', compact && 'h-8 w-8')}
               onClick={() => void onDelete()}
+              aria-label={t('sidebar.delete')}
             >
               <Trash2 className="h-4 w-4 text-[var(--color-destructive)]" />
             </Button>
@@ -251,6 +274,83 @@ function CharacterCard({
               />
             </CharacterFieldRow>
           )}
+
+          <CharacterFieldRow label={t('characters.pet')} compact={compact}>
+            <Select
+              value={character.hasPet ? 'yes' : 'no'}
+              onValueChange={(value) =>
+                void onUpdate({
+                  hasPet: value === 'yes',
+                  petName: value === 'yes' ? character.petName : '',
+                  petSpecies: value === 'yes' ? character.petSpecies : '',
+                  petHasSuperpowers: value === 'yes' ? character.petHasSuperpowers : false,
+                  petSuperpowerDescription:
+                    value === 'yes' ? character.petSuperpowerDescription : '',
+                })
+              }
+            >
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">{t('characters.no')}</SelectItem>
+                <SelectItem value="yes">{t('characters.yes')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </CharacterFieldRow>
+
+          {character.hasPet && (
+            <>
+              <CharacterFieldRow label={t('characters.petName')} compact={compact}>
+                <Input
+                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  value={character.petName ?? ''}
+                  onChange={(e) => void onUpdate({ petName: e.target.value })}
+                  placeholder={t('characters.petNamePlaceholder')}
+                />
+              </CharacterFieldRow>
+              <CharacterFieldRow label={t('characters.petSpecies')} compact={compact}>
+                <Input
+                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  value={character.petSpecies ?? ''}
+                  onChange={(e) => void onUpdate({ petSpecies: e.target.value })}
+                  placeholder={t('characters.petSpeciesPlaceholder')}
+                />
+              </CharacterFieldRow>
+              <CharacterFieldRow label={t('characters.petSuperpowers')} compact={compact}>
+                <Select
+                  value={character.petHasSuperpowers ? 'yes' : 'no'}
+                  onValueChange={(value) =>
+                    void onUpdate({
+                      petHasSuperpowers: value === 'yes',
+                      petSuperpowerDescription:
+                        value === 'yes' ? character.petSuperpowerDescription : '',
+                    })
+                  }
+                >
+                  <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">{t('characters.no')}</SelectItem>
+                    <SelectItem value="yes">{t('characters.yes')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CharacterFieldRow>
+              {character.petHasSuperpowers && (
+                <CharacterFieldRow label={t('characters.petPowers')} compact={compact}>
+                  <Input
+                    className={cn('w-full', compact && 'h-8 text-xs')}
+                    value={character.petSuperpowerDescription ?? ''}
+                    onChange={(e) =>
+                      void onUpdate({ petSuperpowerDescription: e.target.value })
+                    }
+                    placeholder={t('characters.petPowersPlaceholder')}
+                  />
+                </CharacterFieldRow>
+              )}
+            </>
+          )}
         </div>
       ) : null}
     </div>
@@ -273,7 +373,7 @@ export function AddCharacterButton({ compact = false }: { compact?: boolean }) {
             ...emptyCharacter,
             name: '',
           })
-          await loadStory(activeStory.id)
+          await loadStory(activeStory.id, { onlyIfStillActive: true })
         })()
       }
     >
@@ -302,7 +402,7 @@ export function CharacterPanel({
       ...emptyCharacter,
       name: '',
     })
-    await loadStory(activeStory.id)
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
 
   const handleUpdate = async (
@@ -310,12 +410,23 @@ export function CharacterPanel({
     updates: Partial<Omit<Character, 'id' | 'storyId'>>,
   ) => {
     await updateCharacter(characterId, updates)
-    await loadStory(activeStory.id)
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
+  }
+
+  const handleRandomize = async (characterId: string) => {
+    const existingNames = activeStory.characters
+      .filter((character) => character.id !== characterId)
+      .map((character) => character.name)
+    await updateCharacter(
+      characterId,
+      generateRandomCharacter(activeStory.language, existingNames),
+    )
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
 
   const handleDelete = async (characterId: string) => {
     await deleteCharacter(characterId)
-    await loadStory(activeStory.id)
+    await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
 
   return (
@@ -363,6 +474,7 @@ export function CharacterPanel({
               compact={compact}
               t={t}
               onUpdate={(updates) => handleUpdate(character.id, updates)}
+              onRandomize={() => handleRandomize(character.id)}
               onDelete={() => handleDelete(character.id)}
             />
           ))}

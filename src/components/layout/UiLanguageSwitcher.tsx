@@ -6,18 +6,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useUiLanguage } from '@/i18n/context'
-import { UI_LOCALE_OPTIONS } from '@/i18n/uiLocales'
+import { UI_LOCALE_OPTIONS, uiLocaleNativeLabel } from '@/i18n/uiLocales'
 import type { UiLocale } from '@/i18n/types'
 import { cn } from '@/lib/utils'
 
 function LocaleOption({ locale, flag }: { locale: UiLocale; flag: string }) {
-  const { t } = useUiLanguage()
   return (
     <span className="flex items-center gap-2">
       <span className="text-base leading-none" aria-hidden>
         {flag}
       </span>
-      <span>{t(`locale.${locale}`)}</span>
+      <span>{uiLocaleNativeLabel(locale)}</span>
     </span>
   )
 }

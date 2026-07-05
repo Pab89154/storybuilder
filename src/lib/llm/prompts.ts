@@ -98,7 +98,7 @@ export function parseChapterOutline(text: string): ParsedChapterOutline[] {
       chapters.push({ title: match[1].trim(), brief: match[2].trim() })
       continue
     }
-    const altMatch = line.match(/^(?:chapter\s*)?\d+\s*[:\.)]\s*(.+)$/i)
+    const altMatch = line.match(/^(?:chapter\s*)?\d+\s*[:.)]\s*(.+)$/i)
     if (altMatch) {
       chapters.push({ title: altMatch[1].trim(), brief: '' })
     }

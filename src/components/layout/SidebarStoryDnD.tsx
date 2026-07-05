@@ -160,7 +160,7 @@ function DroppableStoryGroup({
         </div>
       ) : null}
       {draggable && isCollapsed && showHeader && isOver ? (
-        <p className="px-3 pb-2 text-xs text-[var(--color-primary)]">Release to move here</p>
+        <p className="px-3 pb-2 text-xs text-[var(--color-primary)]">{t('sidebar.releaseToMoveHere')}</p>
       ) : null}
     </div>
   )

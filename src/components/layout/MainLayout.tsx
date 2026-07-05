@@ -39,7 +39,7 @@ export function MainLayout() {
             'transition-[margin,padding] duration-300 ease-out motion-reduce:transition-none',
           )}
         >
-          <StoryWorkspace onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
+          <StoryWorkspace />
         </main>
       </div>
     </>

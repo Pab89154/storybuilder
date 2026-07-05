@@ -8,4 +8,7 @@ export function ensureStoriesBootstrapped(refreshStories: () => Promise<void>): 
   bootstrapPromise = refreshStories()
     .then(() => ensureDbStartupInit())
     .then(() => refreshStories())
+    .catch(() => {
+      bootstrapPromise = null
+    })
 }

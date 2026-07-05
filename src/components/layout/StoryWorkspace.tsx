@@ -3,7 +3,6 @@ import {
   BookOpen,
   Download,
   Loader2,
-  PanelLeft,
   Pencil,
   Sparkles,
   Square,
@@ -48,10 +47,11 @@ const GENRE_I18N_KEYS = [
   'historical',
 ] as const
 
-interface StoryWorkspaceProps {
-  sidebarCollapsed: boolean
-  onToggleSidebar: () => void
-}
+const toolbarItemClass =
+  'h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] px-3 text-sm whitespace-nowrap sm:basis-0'
+
+const viewModeToggleClass =
+  'h-10 min-w-max flex-1 basis-[calc(50%-0.25rem)] sm:basis-0'
 
 function ViewModeToggle({
   viewMode,
@@ -63,42 +63,44 @@ function ViewModeToggle({
   t: (key: string) => string
 }) {
   return (
-    <div className="flex rounded-lg border p-0.5">
+    <div className={cn('flex rounded-lg border', viewModeToggleClass, 'px-0')}>
       <button
         type="button"
+        aria-pressed={viewMode === 'read'}
         className={cn(
-          'rounded-md px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 sm:py-1.5',
+          'flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-sm font-medium transition-colors',
           viewMode === 'read'
-            ? 'bg-[var(--color-primary)] text-white'
-            : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+            ? 'rounded-l-[calc(0.5rem-1px)] bg-[var(--color-primary)] text-white'
+            : 'rounded-l-[calc(0.5rem-1px)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
         )}
         onClick={() => onChange('read')}
       >
-        <BookOpen className="mr-1.5 inline h-4 w-4" />
+        <BookOpen className="h-4 w-4 shrink-0" />
         {t('workspace.read')}
       </button>
       <button
         type="button"
+        aria-pressed={viewMode === 'edit'}
         className={cn(
-          'rounded-md px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 sm:py-1.5',
+          'flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap border-l px-2.5 text-sm font-medium transition-colors',
           viewMode === 'edit'
-            ? 'bg-[var(--color-primary)] text-white'
-            : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+            ? 'rounded-r-[calc(0.5rem-1px)] border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+            : 'rounded-r-[calc(0.5rem-1px)] border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
         )}
         onClick={() => onChange('edit')}
       >
-        <Pencil className="mr-1.5 inline h-4 w-4" />
+        <Pencil className="h-4 w-4 shrink-0" />
         {t('workspace.edit')}
       </button>
     </div>
   )
 }
 
-export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorkspaceProps) {
+export function StoryWorkspace() {
   const t = useUiT()
   const { activeStory, saveStoryMeta, folders, moveStory, setBookmark } = useStories()
   const { generate, continueStory, cancel, isGenerating, isLoading } = useGeneration()
-  const { wordCount, generationError, isDuplicating, streamingParagraphId, streamingContent } =
+  const { wordCount, generationError, isDuplicating, streamingParagraphId, streamingContent, advancedChapterBrief } =
     useStoryStore()
   const streamingWordCount =
     streamingParagraphId && streamingContent
@@ -118,10 +120,14 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
     const isNewStory =
       activeStory.paragraphs.length === 0 && activeStory.chapters.length === 0
     setViewMode(isNewStory ? 'edit' : 'read')
-  }, [activeStory?.id, activeStory?.paragraphs.length, activeStory?.chapters.length])
+  }, [activeStory])
 
   if (!activeStory) {
-    return <WelcomeScreen />
+    return (
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        <WelcomeScreen />
+      </div>
+    )
   }
 
   const isChapterBook = activeStory.creationMode !== 'legacy'
@@ -158,23 +164,11 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <header className="shrink-0 border-b bg-white px-3 py-2 sm:px-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            {sidebarCollapsed ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 md:hidden"
-                onClick={onToggleSidebar}
-                title={t('workspace.expandSidebar')}
-                aria-label={t('workspace.expandSidebar')}
-              >
-                <PanelLeft className="h-4 w-4" />
-              </Button>
-            ) : null}
+      <header className="shrink-0 border-b bg-[var(--color-card)] px-3 py-2 sm:px-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <BookOpen
-              className="hidden h-4 w-4 shrink-0 text-[var(--color-primary)] sm:block"
+              className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
               aria-hidden
             />
             <Input
@@ -185,48 +179,56 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
               className="h-9 min-w-0 flex-1 border-none px-0 text-base font-semibold shadow-none focus-visible:ring-0"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">
+          <div className="flex w-full flex-wrap items-stretch gap-2">
             <ViewModeToggle viewMode={viewMode} onChange={setViewMode} t={t} />
             {activeStory.creationMode === 'legacy' ? (
               <>
                 <Button
-                  size="sm"
+                  className={toolbarItemClass}
                   onClick={() => void generate()}
                   disabled={isGenerating || isDuplicating || isLoading}
                 >
                   {isGenerating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles className="h-4 w-4" />
                   )}
                   {t('workspace.generate')}
                 </Button>
                 <Button
-                  size="sm"
+                  className={toolbarItemClass}
                   variant="secondary"
                   onClick={() => void continueStory()}
                   disabled={
                     isGenerating || isDuplicating || isLoading || activeStory.paragraphs.length === 0
                   }
                 >
-                  <StepForward className="h-3.5 w-3.5" />
+                  <StepForward className="h-4 w-4" />
                   {t('workspace.continue')}
                 </Button>
               </>
             ) : null}
-            {isChapterBook ? <StorySetupActions story={activeStory} /> : null}
+            {isChapterBook ? (
+              <StorySetupActions
+                story={activeStory}
+                className="contents"
+                buttonClassName={toolbarItemClass}
+                advancedBrief={advancedChapterBrief}
+              />
+            ) : null}
             {isGenerating && !isChapterBook ? (
-              <Button size="sm" variant="outline" onClick={cancel}>
-                <Square className="h-3.5 w-3.5" />
+              <Button className={toolbarItemClass} variant="outline" onClick={cancel}>
+                <Square className="h-4 w-4" />
+                {t('workspace.stop')}
               </Button>
             ) : null}
             <DuplicateStoryDialog
               story={activeStory}
               disabled={isGenerating || isDuplicating}
-              buttonSize="sm"
+              buttonClassName={toolbarItemClass}
             />
             <Button
-              size="sm"
+              className={toolbarItemClass}
               variant="outline"
               onClick={() =>
                 downloadStoryTxt(
@@ -239,8 +241,8 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
               disabled={activeStory.paragraphs.length === 0 || isDuplicating}
               title={t('workspace.exportTxt')}
             >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t('workspace.export')}</span>
+              <Download className="h-4 w-4" />
+              {t('workspace.export')}
             </Button>
           </div>
         </div>

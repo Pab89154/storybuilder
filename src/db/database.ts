@@ -180,6 +180,32 @@ export class StoryBuilderDB extends Dexie {
           if (story.readerAge === 10) story.readerAge = 9
         })
       })
+    this.version(12)
+      .stores({
+        stories:
+          'id, updatedAt, createdAt, title, folderId, genre, sortOrder, bookmarkPageIndex, creationMode, [folderId+sortOrder]',
+        characters: 'id, storyId',
+        paragraphs: 'id, storyId, chapterId, [storyId+order]',
+        chapters: 'id, storyId, [storyId+order]',
+        folders: 'id, order, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('characters').toCollection().modify((char: Character) => {
+          if (char.hasPet === undefined) char.hasPet = false
+          if (char.petHasSuperpowers === undefined) char.petHasSuperpowers = false
+          if (char.petName === undefined) char.petName = ''
+          if (char.petSpecies === undefined) char.petSpecies = ''
+          if (char.petSuperpowerDescription === undefined) char.petSuperpowerDescription = ''
+          if (!char.hasPet) {
+            char.petName = ''
+            char.petSpecies = ''
+            char.petHasSuperpowers = false
+            char.petSuperpowerDescription = ''
+          } else if (!char.petHasSuperpowers) {
+            char.petSuperpowerDescription = ''
+          }
+        })
+      })
   }
 }
 
@@ -471,7 +497,17 @@ export async function updateCharacter(
     'species' in updates && updates.species === ''
       ? { ...updates, species: undefined }
       : updates
-  await db.characters.update(characterId, normalized)
+  const withPetCleanup = { ...normalized }
+  if ('hasPet' in withPetCleanup && !withPetCleanup.hasPet) {
+    withPetCleanup.petName = ''
+    withPetCleanup.petSpecies = ''
+    withPetCleanup.petHasSuperpowers = false
+    withPetCleanup.petSuperpowerDescription = ''
+  }
+  if ('petHasSuperpowers' in withPetCleanup && !withPetCleanup.petHasSuperpowers) {
+    withPetCleanup.petSuperpowerDescription = ''
+  }
+  await db.characters.update(characterId, withPetCleanup)
   await touchStory(character.storyId)
 }
 

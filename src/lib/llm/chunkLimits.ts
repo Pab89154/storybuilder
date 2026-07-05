@@ -10,7 +10,7 @@ export function shouldStopGenerationLoop(
   wordsInLastChunk: number,
 ): boolean {
   if (chunkAttempts >= MAX_GENERATION_CHUNKS) return true
-  if (wordsInLastChunk === 0) return true
+  if (wordsInLastChunk === 0 && wordsSoFar > 0) return true
   if (wordsSoFar >= targetWordCount * 0.95) return true
   return false
 }

@@ -72,12 +72,12 @@ function ChapterStatusBadge({ status }: { status: 'pending' | 'in_progress' | 'c
 export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
   const t = useUiT()
   const { loadStory } = useStories()
-  const { isGenerating, streamingParagraphId, streamingContent } = useStoryStore()
+  const { isGenerating, streamingParagraphId, streamingContent, advancedChapterBrief, setAdvancedChapterBrief } =
+    useStoryStore()
   const streamingWordCount =
     streamingParagraphId && streamingContent
       ? { paragraphId: streamingParagraphId, content: streamingContent }
       : null
-  const [advancedBrief, setAdvancedBrief] = useState('')
   const [setupOpen, setSetupOpen] = useState(true)
   const [chapterTitleDrafts, setChapterTitleDrafts] = useState<Record<string, string>>({})
   const dirtyChapterTitlesRef = useRef(new Set<string>())
@@ -118,7 +118,9 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
     const currentTitle = story.chapters.find((chapter) => chapter.id === chapterId)?.title ?? ''
     if (trimmed === currentTitle) return
     dirtyChapterTitlesRef.current.delete(chapterId)
-    void updateChapter(chapterId, { title: trimmed }).then(() => loadStory(story.id))
+    void updateChapter(chapterId, { title: trimmed }).then(() =>
+      loadStory(story.id, { onlyIfStillActive: true }),
+    )
   }
 
   return (
@@ -385,9 +387,9 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                 <label className="block space-y-1 text-xs">
                   <span className="font-medium text-stone-600">{t('setup.nextChapterNotes')}</span>
                   <Textarea
-                    value={advancedBrief}
+                    value={advancedChapterBrief}
                     disabled={isGenerating}
-                    onChange={(event) => setAdvancedBrief(event.target.value)}
+                    onChange={(event) => setAdvancedChapterBrief(event.target.value)}
                     placeholder={t('setup.nextChapterNotesPlaceholder')}
                     rows={2}
                     className="resize-none border-stone-200 bg-white text-sm"
@@ -403,12 +405,8 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
               ) : null}
             </div>
           ) : (
-            <p className="text-xs text-stone-500">{t('setup.legacyModeHint')}</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">{t('setup.legacyModeHint')}</p>
           )}
-
-          {!isLegacy && !story.isBookFinished ? (
-            <StorySetupActions story={story} advancedBrief={advancedBrief} />
-          ) : null}
         </div>
       ) : null}
     </div>
@@ -419,10 +417,12 @@ export function StorySetupActions({
   story,
   advancedBrief = '',
   className,
+  buttonClassName,
 }: {
   story: StoryWithDetails
   advancedBrief?: string
   className?: string
+  buttonClassName?: string
 }) {
   const t = useUiT()
   const {
@@ -450,20 +450,21 @@ export function StorySetupActions({
       : undefined
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-1', className)}>
+    <div className={cn(className ?? 'flex flex-wrap items-center gap-1')}>
       {isAutomatic ? (
         <Button
-          size="sm"
+          className={buttonClassName}
+          size={buttonClassName ? undefined : 'sm'}
           onClick={() => void generateAutomatic()}
           disabled={isGenerating || isLoading || story.isBookFinished}
           title={inProgressHint ?? undefined}
         >
           {isGenerating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : hasChapters ? (
-            <StepForward className="h-3.5 w-3.5" />
+            <StepForward className="h-4 w-4" />
           ) : (
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="h-4 w-4" />
           )}
           {startLabel}
         </Button>
@@ -473,36 +474,39 @@ export function StorySetupActions({
         <>
           {bookProgress.canContinue ? (
             <Button
-              size="sm"
+              className={buttonClassName}
+              size={buttonClassName ? undefined : 'sm'}
               variant="secondary"
               onClick={() => void continueAdvanced()}
               disabled={isGenerating || isLoading}
               title={inProgressHint ?? undefined}
             >
               {isGenerating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <StepForward className="h-3.5 w-3.5" />
+                <StepForward className="h-4 w-4" />
               )}
               {t('setup.continueBook')}
             </Button>
           ) : null}
           <Button
-            size="sm"
+            className={buttonClassName}
+            size={buttonClassName ? undefined : 'sm'}
             onClick={() => void addAdvancedChapter(advancedBrief)}
             disabled={isGenerating || isLoading}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
             {t('setup.newChapter')}
           </Button>
           {hasChapters ? (
             <Button
-              size="sm"
+              className={buttonClassName}
+              size={buttonClassName ? undefined : 'sm'}
               variant="outline"
               onClick={() => void finishBook()}
               disabled={isGenerating || isLoading}
             >
-              <Flag className="h-3.5 w-3.5" />
+              <Flag className="h-4 w-4" />
               {t('setup.finish')}
             </Button>
           ) : null}
@@ -510,8 +514,15 @@ export function StorySetupActions({
       ) : null}
 
       {isGenerating ? (
-        <Button size="sm" variant="outline" onClick={cancel}>
-          <Square className="h-3.5 w-3.5" />
+        <Button
+          className={buttonClassName}
+          size={buttonClassName ? undefined : 'sm'}
+          variant="outline"
+          onClick={cancel}
+          aria-label={t('workspace.stop')}
+        >
+          <Square className="h-4 w-4" />
+          {t('workspace.stop')}
         </Button>
       ) : null}
     </div>

@@ -118,6 +118,95 @@ function superpowerLabel(char: Character, language: Language): string {
             : 'no superpowers'
 }
 
+function petSuperpowerLabel(char: Character, language: Language): string {
+  if (char.petHasSuperpowers) {
+    return (
+      char.petSuperpowerDescription?.trim() ||
+      (language === 'es'
+        ? 'tiene superpoderes'
+        : language === 'zh'
+          ? '拥有超能力'
+          : language === 'ar'
+            ? 'لديه قوى خارقة'
+            : language === 'fr'
+              ? 'a des super-pouvoirs'
+              : language === 'de'
+                ? 'hat Superkräfte'
+                : 'has superpowers')
+    )
+  }
+  return language === 'es'
+    ? 'sin superpoderes'
+    : language === 'zh'
+      ? '没有超能力'
+      : language === 'ar'
+        ? 'بلا قوى خارقة'
+        : language === 'fr'
+          ? 'sans super-pouvoirs'
+          : language === 'de'
+            ? 'keine Superkräfte'
+            : 'no superpowers'
+}
+
+function petLabel(char: Character, language: Language): string {
+  if (!char.hasPet) {
+    return language === 'es'
+      ? 'sin mascota'
+      : language === 'zh'
+        ? '没有宠物'
+        : language === 'ar'
+          ? 'بلا حيوان أليف'
+          : language === 'fr'
+            ? 'sans animal de compagnie'
+            : language === 'de'
+              ? 'kein Haustier'
+              : 'no pet'
+  }
+
+  const name =
+    char.petName?.trim() ||
+    (language === 'es'
+      ? 'mascota sin nombre'
+      : language === 'zh'
+        ? '未命名宠物'
+        : language === 'ar'
+          ? 'حيوان أليف بلا اسم'
+          : language === 'fr'
+            ? 'animal sans nom'
+            : language === 'de'
+              ? 'namenloses Haustier'
+              : 'unnamed pet')
+  const species = char.petSpecies?.trim()
+  const powers = petSuperpowerLabel(char, language)
+
+  switch (language) {
+    case 'es':
+      return species
+        ? `mascota: ${name} (${species}), ${powers}`
+        : `mascota: ${name}, ${powers}`
+    case 'zh':
+      return species
+        ? `宠物：${name}（${species}），${powers}`
+        : `宠物：${name}，${powers}`
+    case 'ar':
+      return species
+        ? `حيوان أليف: ${name} (${species})، ${powers}`
+        : `حيوان أليف: ${name}، ${powers}`
+    case 'fr':
+      return species
+        ? `animal : ${name} (${species}), ${powers}`
+        : `animal : ${name}, ${powers}`
+    case 'de':
+      return species
+        ? `Haustier: ${name} (${species}), ${powers}`
+        : `Haustier: ${name}, ${powers}`
+    default:
+      return species
+        ? `pet: ${name} (${species}), ${powers}`
+        : `pet: ${name}, ${powers}`
+  }
+}
+
 export function buildCharacterBible(characters: Character[], language: Language): string {
   if (characters.length === 0) {
     switch (language) {
@@ -139,19 +228,20 @@ export function buildCharacterBible(characters: Character[], language: Language)
   return characters
     .map((char) => {
       const powers = superpowerLabel(char, language)
+      const pet = petLabel(char, language)
       switch (language) {
         case 'es':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}`
+          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
         case 'zh':
-          return `- ${char.name}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}`
+          return `- ${char.name}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}，${pet}`
         case 'ar':
-          return `- ${char.name}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}`
+          return `- ${char.name}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}، ${pet}`
         case 'fr':
-          return `- ${char.name} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}`
+          return `- ${char.name} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
         case 'de':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}`
+          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
         default:
-          return `- ${char.name}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}`
+          return `- ${char.name}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
       }
     })
     .join('\n')
