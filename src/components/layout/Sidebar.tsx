@@ -3,6 +3,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  FolderPlus,
   Library,
   PanelLeft,
   PanelLeftClose,
@@ -10,6 +11,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -225,58 +227,68 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     />
   )
 
-  if (collapsed) {
-    return (
-      <>
-      <aside
-        className="flex h-full w-12 shrink-0 flex-col items-center gap-1 overflow-hidden border-r bg-[var(--color-sidebar)] py-2"
-        aria-label={t('sidebar.libraryCollapsed')}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9"
-          onClick={onToggleCollapsed}
-          title={t('sidebar.expand')}
-          aria-label={t('sidebar.expand')}
-        >
-          <PanelLeft className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => setShowNewStory(true)}
-          title={t('sidebar.newStory')}
-          aria-label={t('sidebar.newStory')}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9"
-          onClick={onToggleCollapsed}
-          title={t('sidebar.browse')}
-          aria-label={t('sidebar.browse')}
-        >
-          <Library className="h-5 w-5" />
-        </Button>
-      </aside>
-      {newStoryDialog}
-      </>
-    )
+  const openNewCollection = () => {
+    setShowNewFolder(true)
+    if (collapsed) onToggleCollapsed()
   }
+
+  const collapsedRail = (
+    <div
+      className={cn(
+        'absolute inset-y-0 left-0 z-10 flex w-14 flex-col items-center gap-3 border-r bg-[var(--color-sidebar)] pb-4 pt-7',
+        collapsed ? 'max-md:hidden md:flex' : 'hidden',
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-11 w-11"
+        onClick={onToggleCollapsed}
+        title={t('sidebar.expand')}
+        aria-label={t('sidebar.expand')}
+      >
+        <PanelLeft className="h-6 w-6" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-11 w-11 text-[var(--color-primary)] hover:text-[var(--color-primary)]"
+        onClick={() => setShowNewStory(true)}
+        title={t('sidebar.newStory')}
+        aria-label={t('sidebar.newStory')}
+      >
+        <Sparkles className="h-6 w-6" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-11 w-11"
+        onClick={openNewCollection}
+        title={t('sidebar.collection')}
+        aria-label={t('sidebar.collection')}
+      >
+        <FolderPlus className="h-6 w-6" />
+      </Button>
+    </div>
+  )
 
   return (
     <>
-    <aside
-      className={cn(
-        'flex h-full shrink-0 flex-col overflow-hidden border-r bg-[var(--color-sidebar)] transition-[width] duration-200',
-        'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:max-w-[min(20rem,92vw)] max-md:shadow-2xl',
-        'w-80 min-w-0',
-      )}
-    >
+      <aside
+        aria-label={collapsed ? t('sidebar.libraryCollapsed') : t('app.name')}
+        className={cn(
+          'relative flex h-full shrink-0 overflow-hidden border-r bg-[var(--color-sidebar)]',
+          'transition-[width,transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
+          collapsed ? 'w-14' : 'w-80',
+          'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(20rem,92vw)]',
+          collapsed
+            ? 'max-md:-translate-x-full max-md:shadow-none max-md:pointer-events-none'
+            : 'max-md:translate-x-0 max-md:shadow-2xl',
+        )}
+      >
+        {collapsedRail}
+
+        <div className="flex h-full w-80 min-w-0 flex-col overflow-hidden">
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
@@ -447,6 +459,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           )}
         </div>
       </ScrollArea>
+        </div>
     </aside>
     {newStoryDialog}
     </>

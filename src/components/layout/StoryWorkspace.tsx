@@ -27,6 +27,7 @@ import { WebGPUWarning } from '@/components/model/WebGPUWarning'
 import { downloadStoryTxt } from '@/lib/export/txt'
 import { LanguageSelect } from '@/components/story/LanguageSelect'
 import { DuplicateStoryDialog } from '@/components/story/DuplicateStoryDialog'
+import { WelcomeScreen } from '@/components/layout/WelcomeScreen'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
 import { useGeneration } from '@/hooks/useGeneration'
@@ -120,17 +121,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
   }, [activeStory?.id, activeStory?.paragraphs.length, activeStory?.chapters.length])
 
   if (!activeStory) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <Sparkles className="h-12 w-12 text-[var(--color-primary)] opacity-60" />
-        <div>
-          <h2 className="text-xl font-semibold">{t('workspace.welcomeTitle')}</h2>
-          <p className="mt-1 max-w-md text-[var(--color-muted-foreground)]">
-            {t('workspace.welcomeHint')}
-          </p>
-        </div>
-      </div>
-    )
+    return <WelcomeScreen />
   }
 
   const isChapterBook = activeStory.creationMode !== 'legacy'
@@ -174,7 +165,7 @@ export function StoryWorkspace({ sidebarCollapsed, onToggleSidebar }: StoryWorks
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 shrink-0"
+                className="h-9 w-9 shrink-0 md:hidden"
                 onClick={onToggleSidebar}
                 title={t('workspace.expandSidebar')}
                 aria-label={t('workspace.expandSidebar')}

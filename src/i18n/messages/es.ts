@@ -60,6 +60,9 @@ export const es = {
     welcomeTitle: 'Bienvenido a StoryBuilder',
     welcomeHint:
       'Crea un cuento desde la barra lateral, añade personajes, escribe un prompt y deja que la IA cree la aventura — todo en el navegador.',
+    welcomeStep1: 'Empieza un libro nuevo desde la barra lateral',
+    welcomeStep2: 'Añade héroes, amigos y villanos',
+    welcomeStep3: 'Describe tu idea y genera capítulos',
     read: 'Leer',
     edit: 'Editar',
     generate: 'Generar',

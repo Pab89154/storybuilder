@@ -60,6 +60,9 @@ export const en = {
     welcomeTitle: 'Welcome to StoryBuilder',
     welcomeHint:
       'Create a story from the sidebar, add characters, write a prompt, and let AI craft an adventure — entirely in your browser.',
+    welcomeStep1: 'Start a new book from the sidebar',
+    welcomeStep2: 'Add heroes, friends, and villains',
+    welcomeStep3: 'Describe your idea and generate chapters',
     read: 'Read',
     edit: 'Edit',
     generate: 'Generate',

@@ -61,6 +61,9 @@ export const de = {
     welcomeTitle: 'Willkommen bei StoryBuilder',
     welcomeHint:
       'Erstelle eine Geschichte in der Seitenleiste, füge Charaktere hinzu, schreibe eine Idee, und lass die KI ein Abenteuer erfinden — ganz in deinem Browser.',
+    welcomeStep1: 'Starte ein neues Buch in der Seitenleiste',
+    welcomeStep2: 'Füge Helden, Freunde und Schurken hinzu',
+    welcomeStep3: 'Beschreibe deine Idee und generiere Kapitel',
     read: 'Lesen',
     edit: 'Bearbeiten',
     generate: 'Generieren',

@@ -1,14 +1,8 @@
-import { isMobileDevice } from '@/lib/deviceCapabilities'
-
 let autoInitStarted = false
 
-/** Desktop only — mobile loads the model on first Generate to avoid memory reload loops. */
-export function shouldAutoInitLLM(): boolean {
-  return !isMobileDevice()
-}
-
+/** Starts downloading the AI model once per session when the app opens. */
 export function ensureLLMAutoInit(loadModel: () => Promise<void>): void {
-  if (autoInitStarted || !shouldAutoInitLLM()) return
+  if (autoInitStarted) return
   autoInitStarted = true
   void loadModel()
 }
