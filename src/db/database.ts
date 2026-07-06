@@ -206,6 +206,28 @@ export class StoryBuilderDB extends Dexie {
           }
         })
       })
+    this.version(13)
+      .stores({
+        stories:
+          'id, updatedAt, createdAt, title, folderId, genre, sortOrder, bookmarkPageIndex, creationMode, [folderId+sortOrder]',
+        characters: 'id, storyId',
+        paragraphs: 'id, storyId, chapterId, [storyId+order]',
+        chapters: 'id, storyId, [storyId+order]',
+        folders: 'id, order, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('characters').toCollection().modify((char: Character) => {
+          if (char.hasVehicle === undefined) char.hasVehicle = false
+          if (char.vehicleType === undefined) char.vehicleType = ''
+          if (char.vehicleColor === undefined) char.vehicleColor = ''
+          if (char.vehicleSpeed === undefined) char.vehicleSpeed = ''
+          if (!char.hasVehicle) {
+            char.vehicleType = ''
+            char.vehicleColor = ''
+            char.vehicleSpeed = ''
+          }
+        })
+      })
   }
 }
 
@@ -497,17 +519,22 @@ export async function updateCharacter(
     'species' in updates && updates.species === ''
       ? { ...updates, species: undefined }
       : updates
-  const withPetCleanup = { ...normalized }
-  if ('hasPet' in withPetCleanup && !withPetCleanup.hasPet) {
-    withPetCleanup.petName = ''
-    withPetCleanup.petSpecies = ''
-    withPetCleanup.petHasSuperpowers = false
-    withPetCleanup.petSuperpowerDescription = ''
+  const withCharacterCleanup = { ...normalized }
+  if ('hasPet' in withCharacterCleanup && !withCharacterCleanup.hasPet) {
+    withCharacterCleanup.petName = ''
+    withCharacterCleanup.petSpecies = ''
+    withCharacterCleanup.petHasSuperpowers = false
+    withCharacterCleanup.petSuperpowerDescription = ''
   }
-  if ('petHasSuperpowers' in withPetCleanup && !withPetCleanup.petHasSuperpowers) {
-    withPetCleanup.petSuperpowerDescription = ''
+  if ('petHasSuperpowers' in withCharacterCleanup && !withCharacterCleanup.petHasSuperpowers) {
+    withCharacterCleanup.petSuperpowerDescription = ''
   }
-  await db.characters.update(characterId, withPetCleanup)
+  if ('hasVehicle' in withCharacterCleanup && !withCharacterCleanup.hasVehicle) {
+    withCharacterCleanup.vehicleType = ''
+    withCharacterCleanup.vehicleColor = ''
+    withCharacterCleanup.vehicleSpeed = ''
+  }
+  await db.characters.update(characterId, withCharacterCleanup)
   await touchStory(character.storyId)
 }
 

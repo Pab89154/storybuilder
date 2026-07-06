@@ -21,7 +21,12 @@ function formatCharacter(char: Character): string {
         }`
       : `Pet: ${char.petName?.trim() || 'Unnamed'} (${char.petSpecies?.trim() || 'unknown species'}) — no superpowers`
     : 'No pet'
-  return `- ${char.name} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}. ${petPart}`
+  const vehiclePart = char.hasVehicle
+    ? `Vehicle: ${char.vehicleType?.trim() || 'Unnamed'} — ${char.vehicleColor?.trim() || 'unknown color'} — ${
+        char.vehicleSpeed?.trim() || 'unknown speed'
+      }`
+    : 'No vehicle'
+  return `- ${char.name} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}. ${petPart}. ${vehiclePart}`
 }
 
 export function buildStoryText(

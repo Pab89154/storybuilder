@@ -56,6 +56,10 @@ const emptyCharacter = {
   petSpecies: '',
   petHasSuperpowers: false,
   petSuperpowerDescription: '',
+  hasVehicle: false,
+  vehicleType: '',
+  vehicleColor: '',
+  vehicleSpeed: '',
 }
 
 export function formatCharacterSummary(
@@ -83,6 +87,10 @@ function formatCharacterDetailSummary(character: Character, t: (key: string) => 
     const petName = character.petName?.trim() || t('characters.unnamedPet')
     const petSpecies = character.petSpecies?.trim()
     parts.push(petSpecies ? `${petName} (${petSpecies})` : petName)
+  }
+  if (character.hasVehicle) {
+    const vehicleType = character.vehicleType?.trim() || t('characters.unnamedVehicle')
+    parts.push(vehicleType)
   }
   return parts.join(' · ')
 }
@@ -349,6 +357,57 @@ function CharacterCard({
                   />
                 </CharacterFieldRow>
               )}
+            </>
+          )}
+
+          <CharacterFieldRow label={t('characters.vehicle')} compact={compact}>
+            <Select
+              value={character.hasVehicle ? 'yes' : 'no'}
+              onValueChange={(value) =>
+                void onUpdate({
+                  hasVehicle: value === 'yes',
+                  vehicleType: value === 'yes' ? character.vehicleType : '',
+                  vehicleColor: value === 'yes' ? character.vehicleColor : '',
+                  vehicleSpeed: value === 'yes' ? character.vehicleSpeed : '',
+                })
+              }
+            >
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">{t('characters.no')}</SelectItem>
+                <SelectItem value="yes">{t('characters.yes')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </CharacterFieldRow>
+
+          {character.hasVehicle && (
+            <>
+              <CharacterFieldRow label={t('characters.vehicleType')} compact={compact}>
+                <Input
+                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  value={character.vehicleType ?? ''}
+                  onChange={(e) => void onUpdate({ vehicleType: e.target.value })}
+                  placeholder={t('characters.vehicleTypePlaceholder')}
+                />
+              </CharacterFieldRow>
+              <CharacterFieldRow label={t('characters.vehicleColor')} compact={compact}>
+                <Input
+                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  value={character.vehicleColor ?? ''}
+                  onChange={(e) => void onUpdate({ vehicleColor: e.target.value })}
+                  placeholder={t('characters.vehicleColorPlaceholder')}
+                />
+              </CharacterFieldRow>
+              <CharacterFieldRow label={t('characters.vehicleSpeed')} compact={compact}>
+                <Input
+                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  value={character.vehicleSpeed ?? ''}
+                  onChange={(e) => void onUpdate({ vehicleSpeed: e.target.value })}
+                  placeholder={t('characters.vehicleSpeedPlaceholder')}
+                />
+              </CharacterFieldRow>
             </>
           )}
         </div>

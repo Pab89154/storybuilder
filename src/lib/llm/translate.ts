@@ -128,6 +128,33 @@ export async function duplicateStoryWithTranslation(
         `Pet name for character ${char.name}`,
       )
     }
+    let vehicleType = char.vehicleType
+    if (!sameLanguage && char.hasVehicle && char.vehicleType?.trim()) {
+      vehicleType = await translateText(
+        engine,
+        char.vehicleType,
+        targetLanguage,
+        `Vehicle type for character ${char.name}`,
+      )
+    }
+    let vehicleColor = char.vehicleColor
+    if (!sameLanguage && char.hasVehicle && char.vehicleColor?.trim()) {
+      vehicleColor = await translateText(
+        engine,
+        char.vehicleColor,
+        targetLanguage,
+        `Vehicle color for character ${char.name}`,
+      )
+    }
+    let vehicleSpeed = char.vehicleSpeed
+    if (!sameLanguage && char.hasVehicle && char.vehicleSpeed?.trim()) {
+      vehicleSpeed = await translateText(
+        engine,
+        char.vehicleSpeed,
+        targetLanguage,
+        `Vehicle speed for character ${char.name}`,
+      )
+    }
     characters.push({
       name: char.name,
       alignment: char.alignment,
@@ -142,6 +169,10 @@ export async function duplicateStoryWithTranslation(
       petSpecies,
       petHasSuperpowers: char.petHasSuperpowers ?? false,
       petSuperpowerDescription,
+      hasVehicle: char.hasVehicle ?? false,
+      vehicleType,
+      vehicleColor,
+      vehicleSpeed,
     })
     report(
       sameLanguage

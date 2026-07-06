@@ -28,6 +28,10 @@ export interface Character {
   petSpecies?: string
   petHasSuperpowers: boolean
   petSuperpowerDescription?: string
+  hasVehicle: boolean
+  vehicleType?: string
+  vehicleColor?: string
+  vehicleSpeed?: string
 }
 
 export interface Paragraph {

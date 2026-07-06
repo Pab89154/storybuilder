@@ -18,6 +18,10 @@ export type RandomCharacterData = {
   petSpecies?: string
   petHasSuperpowers: boolean
   petSuperpowerDescription?: string
+  hasVehicle: boolean
+  vehicleType?: string
+  vehicleColor?: string
+  vehicleSpeed?: string
 }
 
 const RANDOM_NAME_TRIGGER = 'random'
@@ -65,6 +69,33 @@ const PET_SPECIES: Record<Language, readonly string[]> = {
   ar: ['كلب', 'قطة', 'أرنب', 'هامستر', 'ببغاء', 'سلحفاة', 'ثعلب', 'بومة', 'ضفدع', 'مهر'],
   fr: ['Chien', 'Chat', 'Lapin', 'Hamster', 'Perroquet', 'Tortue', 'Renard', 'Hibou', 'Grenouille', 'Poney'],
   de: ['Hund', 'Katze', 'Kaninchen', 'Hamster', 'Papagei', 'Schildkröte', 'Fuchs', 'Eule', 'Frosch', 'Pony'],
+}
+
+const VEHICLE_TYPES: Record<Language, readonly string[]> = {
+  en: ['Bicycle', 'Skateboard', 'Scooter', 'Go-kart', 'Rocket ship', 'Hoverboard', 'Submarine', 'Magic carpet', 'Horse cart', 'Speedboat'],
+  es: ['Bicicleta', 'Monopatín', 'Patinete', 'Kart', 'Cohete', 'Hoverboard', 'Submarino', 'Alfombra mágica', 'Carreta', 'Lancha'],
+  zh: ['自行车', '滑板', '滑板车', '卡丁车', '火箭', '悬浮板', '潜水艇', '魔毯', '马车', '快艇'],
+  ar: ['دراجة', 'لوح تزلج', 'سكوتر', 'عربة سباق', 'صاروخ', 'لوح طائر', 'غواصة', 'بساط سحري', 'عربة', 'قارب سريع'],
+  fr: ['Vélo', 'Skateboard', 'Trottinette', 'Kart', 'Fusée', 'Hoverboard', 'Sous-marin', 'Tapis volant', 'Charrette', 'Hors-bord'],
+  de: ['Fahrrad', 'Skateboard', 'Roller', 'Go-Kart', 'Rakete', 'Hoverboard', 'U-Boot', 'Fliegerteppich', 'Planwagen', 'Schnellboot'],
+}
+
+const VEHICLE_COLORS: Record<Language, readonly string[]> = {
+  en: ['Red', 'Blue', 'Green', 'Yellow', 'Silver', 'Black', 'White', 'Purple', 'Orange', 'Gold'],
+  es: ['Rojo', 'Azul', 'Verde', 'Amarillo', 'Plateado', 'Negro', 'Blanco', 'Morado', 'Naranja', 'Dorado'],
+  zh: ['红色', '蓝色', '绿色', '黄色', '银色', '黑色', '白色', '紫色', '橙色', '金色'],
+  ar: ['أحمر', 'أزرق', 'أخضر', 'أصفر', 'فضي', 'أسود', 'أبيض', 'بنفسجي', 'برتقالي', 'ذهبي'],
+  fr: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Argent', 'Noir', 'Blanc', 'Violet', 'Orange', 'Or'],
+  de: ['Rot', 'Blau', 'Grün', 'Gelb', 'Silber', 'Schwarz', 'Weiß', 'Lila', 'Orange', 'Gold'],
+}
+
+const VEHICLE_SPEEDS: Record<Language, readonly string[]> = {
+  en: ['10 mph', '25 mph', '50 mph', 'Very fast', 'Super fast', 'Lightning quick', 'Slow and steady', 'Zooms like the wind', '100 mph', 'As fast as a cheetah'],
+  es: ['16 km/h', '40 km/h', '80 km/h', 'Muy rápido', 'Superrápido', 'Rapidísimo', 'Lento y constante', 'Corre como el viento', '160 km/h', 'Tan rápido como un guepardo'],
+  zh: ['16公里/小时', '40公里/小时', '80公里/小时', '非常快', '超级快', '快如闪电', '慢而稳', '像风一样快', '160公里/小时', '像猎豹一样快'],
+  ar: ['16 كم/س', '40 كم/س', '80 كم/س', 'سريع جداً', 'سريع للغاية', 'سريع كالبرق', 'بطيء وثابت', 'سريع كالريح', '160 كم/س', 'سريع كالفهد'],
+  fr: ['16 km/h', '40 km/h', '80 km/h', 'Très rapide', 'Super rapide', 'Rapide comme l’éclair', 'Lent et régulier', 'Rapide comme le vent', '160 km/h', 'Rapide comme un guépard'],
+  de: ['16 km/h', '40 km/h', '80 km/h', 'Sehr schnell', 'Superschnell', 'Blitzschnell', 'Langsam und stetig', 'Schnell wie der Wind', '160 km/h', 'So schnell wie ein Gepard'],
 }
 
 const SUPERPOWERS: Record<Language, readonly string[]> = {
@@ -173,6 +204,7 @@ export function generateRandomCharacter(
   const hasSuperpowers = Math.random() < (isHuman ? 0.35 : 0.55)
   const hasPet = Math.random() < 0.45
   const petHasSuperpowers = hasPet && Math.random() < 0.3
+  const hasVehicle = Math.random() < 0.35
 
   return {
     name: pickUniqueName(language, gender, existingNames),
@@ -188,5 +220,9 @@ export function generateRandomCharacter(
     petSpecies: hasPet ? pick(PET_SPECIES[language]) : '',
     petHasSuperpowers,
     petSuperpowerDescription: petHasSuperpowers ? pick(SUPERPOWERS[language]) : '',
+    hasVehicle,
+    vehicleType: hasVehicle ? pick(VEHICLE_TYPES[language]) : '',
+    vehicleColor: hasVehicle ? pick(VEHICLE_COLORS[language]) : '',
+    vehicleSpeed: hasVehicle ? pick(VEHICLE_SPEEDS[language]) : '',
   }
 }

@@ -207,6 +207,71 @@ function petLabel(char: Character, language: Language): string {
   }
 }
 
+function vehicleLabel(char: Character, language: Language): string {
+  if (!char.hasVehicle) {
+    return language === 'es'
+      ? 'sin vehículo'
+      : language === 'zh'
+        ? '没有交通工具'
+        : language === 'ar'
+          ? 'بلا مركبة'
+          : language === 'fr'
+            ? 'sans véhicule'
+            : language === 'de'
+              ? 'kein Fahrzeug'
+              : 'no vehicle'
+  }
+
+  const type =
+    char.vehicleType?.trim() ||
+    (language === 'es'
+      ? 'vehículo sin nombre'
+      : language === 'zh'
+        ? '未命名交通工具'
+        : language === 'ar'
+          ? 'مركبة بلا اسم'
+          : language === 'fr'
+            ? 'véhicule sans nom'
+            : language === 'de'
+              ? 'namenloses Fahrzeug'
+              : 'unnamed vehicle')
+  const color = char.vehicleColor?.trim()
+  const speed = char.vehicleSpeed?.trim()
+
+  switch (language) {
+    case 'es':
+      if (color && speed) return `vehículo: ${type}, color ${color}, velocidad ${speed}`
+      if (color) return `vehículo: ${type}, color ${color}`
+      if (speed) return `vehículo: ${type}, velocidad ${speed}`
+      return `vehículo: ${type}`
+    case 'zh':
+      if (color && speed) return `交通工具：${type}，${color}，速度 ${speed}`
+      if (color) return `交通工具：${type}，${color}`
+      if (speed) return `交通工具：${type}，速度 ${speed}`
+      return `交通工具：${type}`
+    case 'ar':
+      if (color && speed) return `مركبة: ${type}، لون ${color}، سرعة ${speed}`
+      if (color) return `مركبة: ${type}، لون ${color}`
+      if (speed) return `مركبة: ${type}، سرعة ${speed}`
+      return `مركبة: ${type}`
+    case 'fr':
+      if (color && speed) return `véhicule : ${type}, couleur ${color}, vitesse ${speed}`
+      if (color) return `véhicule : ${type}, couleur ${color}`
+      if (speed) return `véhicule : ${type}, vitesse ${speed}`
+      return `véhicule : ${type}`
+    case 'de':
+      if (color && speed) return `Fahrzeug: ${type}, Farbe ${color}, Geschwindigkeit ${speed}`
+      if (color) return `Fahrzeug: ${type}, Farbe ${color}`
+      if (speed) return `Fahrzeug: ${type}, Geschwindigkeit ${speed}`
+      return `Fahrzeug: ${type}`
+    default:
+      if (color && speed) return `vehicle: ${type}, color ${color}, speed ${speed}`
+      if (color) return `vehicle: ${type}, color ${color}`
+      if (speed) return `vehicle: ${type}, speed ${speed}`
+      return `vehicle: ${type}`
+  }
+}
+
 export function buildCharacterBible(characters: Character[], language: Language): string {
   if (characters.length === 0) {
     switch (language) {
@@ -229,19 +294,20 @@ export function buildCharacterBible(characters: Character[], language: Language)
     .map((char) => {
       const powers = superpowerLabel(char, language)
       const pet = petLabel(char, language)
+      const vehicle = vehicleLabel(char, language)
       switch (language) {
         case 'es':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
+          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         case 'zh':
-          return `- ${char.name}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}，${pet}`
+          return `- ${char.name}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}，${pet}，${vehicle}`
         case 'ar':
-          return `- ${char.name}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}، ${pet}`
+          return `- ${char.name}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}، ${pet}، ${vehicle}`
         case 'fr':
-          return `- ${char.name} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
+          return `- ${char.name} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         case 'de':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
+          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         default:
-          return `- ${char.name}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}`
+          return `- ${char.name}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
       }
     })
     .join('\n')
