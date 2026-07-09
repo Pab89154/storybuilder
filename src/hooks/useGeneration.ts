@@ -52,6 +52,7 @@ export function useGeneration() {
   const { setGenerating, setStreaming, setGenerationError } = useStoryStore()
   const { loadStory, refreshStories } = useStories()
   const abortRef = useRef<AbortController | null>(null)
+  const finishBookRequestedRef = useRef(false)
 
   const ensureEngine = useCallback(async () => {
     const { engine } = await initEngine()
@@ -76,12 +77,16 @@ export function useGeneration() {
   )
 
   const runGeneration = useCallback(
-    async (action: (callbacks: GenerationCallbacks) => Promise<void>) => {
+    async (
+      action: (callbacks: GenerationCallbacks) => Promise<void>,
+      options?: { finishBookOnRequest?: boolean },
+    ) => {
       const story = useStoryStore.getState().activeStory
       if (!story || useStoryStore.getState().isGenerating) return
 
       const storyId = story.id
       const runId = ++generationRunRef.current
+      finishBookRequestedRef.current = false
       setGenerationError(null)
       setGenerating(true, storyId)
       abortRef.current = new AbortController()
@@ -96,11 +101,52 @@ export function useGeneration() {
         } else {
           setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
         }
-      } finally {
-        await finishGenerationRun(storyId, runId)
       }
+
+      if (
+        options?.finishBookOnRequest &&
+        finishBookRequestedRef.current &&
+        generationRunRef.current === runId
+      ) {
+        finishBookRequestedRef.current = false
+        try {
+          abortRef.current = new AbortController()
+          const finishCallbacks = buildCallbacksForRun(
+            storyId,
+            runId,
+            abortRef.current.signal,
+          )
+          const engine = await ensureEngine()
+          await loadStory(storyId, { onlyIfStillActive: true })
+          const current = useStoryStore.getState().activeStory
+          if (
+            current &&
+            current.id === storyId &&
+            !current.isBookFinished &&
+            current.chapters.length > 0
+          ) {
+            await finishAdvancedBook(
+              engine,
+              current,
+              current.characters,
+              current.chapters,
+              current.paragraphs,
+              finishCallbacks,
+            )
+          }
+        } catch (err) {
+          if (generationRunRef.current !== runId) return
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            // User stopped during finale generation.
+          } else {
+            setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
+          }
+        }
+      }
+
+      await finishGenerationRun(storyId, runId)
     },
-    [finishGenerationRun, setGenerating, setGenerationError, t],
+    [ensureEngine, finishGenerationRun, loadStory, setGenerating, setGenerationError, t],
   )
 
   const generate = useCallback(async () => {
@@ -139,7 +185,7 @@ export function useGeneration() {
         current.paragraphs,
         callbacks,
       )
-    })
+    }, { finishBookOnRequest: true })
   }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const continueAdvanced = useCallback(async () => {
@@ -162,7 +208,7 @@ export function useGeneration() {
         current.paragraphs,
         callbacks,
       )
-    })
+    }, { finishBookOnRequest: true })
   }, [ensureEngine, runGeneration, setGenerationError, t])
 
   const addAdvancedChapter = useCallback(
@@ -187,7 +233,7 @@ export function useGeneration() {
           chapterBrief,
           callbacks,
         )
-      })
+      }, { finishBookOnRequest: true })
     },
     [ensureEngine, runGeneration, setGenerationError, t],
   )
@@ -268,8 +314,20 @@ export function useGeneration() {
   )
 
   const cancel = useCallback(() => {
+    finishBookRequestedRef.current = false
     abortRef.current?.abort()
   }, [])
+
+  const requestFinishBook = useCallback(() => {
+    const story = useStoryStore.getState().activeStory
+    if (!story || story.isBookFinished) return
+    if (!useStoryStore.getState().isGenerating) {
+      void finishBook()
+      return
+    }
+    finishBookRequestedRef.current = true
+    abortRef.current?.abort()
+  }, [finishBook])
 
   return {
     isReady,
@@ -280,6 +338,7 @@ export function useGeneration() {
     continueAdvanced,
     addAdvancedChapter,
     finishBook,
+    requestFinishBook,
     continueStory: continueStoryAction,
     regenerate,
     cancel,

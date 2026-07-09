@@ -1,32 +1,58 @@
 import { languageDisplay } from '@/lib/language'
 import { groupParagraphsByChapter } from '@/lib/chapterParagraphs'
+import {
+  formatCharacterListValue,
+  hasMultipleCharacterValues,
+  joinCharacterList,
+  splitCharacterList,
+} from '@/lib/characterFields'
 import type { Character, Chapter, Paragraph, Story } from '@/types/story'
 
 function formatCharacter(char: Character): string {
   const alignment = char.alignment === 'good' ? 'Good' : 'Bad'
   const gender = char.gender === 'boy' ? 'Boy' : 'Girl'
   const isHuman = char.isHuman ?? true
+  const speciesItems = splitCharacterList(char.species)
   const speciesPart = isHuman
     ? 'human'
-    : char.species?.trim()
-      ? `species: ${char.species.trim()}`
+    : speciesItems.length > 0
+      ? hasMultipleCharacterValues(char.species)
+        ? `species: ${joinCharacterList(speciesItems)}`
+        : `species: ${speciesItems[0]}`
       : 'non-human'
+  const powerItems = splitCharacterList(char.superpowerDescription)
   const powers = char.hasSuperpowers
-    ? char.superpowerDescription?.trim() || 'Has superpowers'
+    ? powerItems.length > 1
+      ? `Superpowers: ${joinCharacterList(powerItems)}`
+      : powerItems.length === 1
+        ? powerItems[0]!
+        : 'Has superpowers'
     : 'No superpowers'
+  const nicknames = formatCharacterListValue(char.nickname)
+  const namePart = nicknames ? `${char.name} (nickname: ${nicknames})` : char.name
+  const petNames = formatCharacterListValue(char.petName, 'Unnamed')
+  const petSpecies = formatCharacterListValue(char.petSpecies, 'unknown species')
+  const petPowerItems = splitCharacterList(char.petSuperpowerDescription)
   const petPart = char.hasPet
     ? char.petHasSuperpowers
-      ? `Pet: ${char.petName?.trim() || 'Unnamed'} (${char.petSpecies?.trim() || 'unknown species'}) — ${
-          char.petSuperpowerDescription?.trim() || 'has superpowers'
-        }`
-      : `Pet: ${char.petName?.trim() || 'Unnamed'} (${char.petSpecies?.trim() || 'unknown species'}) — no superpowers`
+      ? petPowerItems.length > 1
+        ? `Pets: ${petNames} (${petSpecies}) — Superpowers: ${joinCharacterList(petPowerItems)}`
+        : `Pet: ${petNames} (${petSpecies}) — ${petPowerItems[0]?.trim() || 'has superpowers'}`
+      : hasMultipleCharacterValues(char.petName) || hasMultipleCharacterValues(char.petSpecies)
+        ? `Pets: ${petNames} (${petSpecies}) — no superpowers`
+        : `Pet: ${petNames} (${petSpecies}) — no superpowers`
     : 'No pet'
+  const vehicleTypes = formatCharacterListValue(char.vehicleType, 'Unnamed')
+  const vehicleColors = formatCharacterListValue(char.vehicleColor, 'unknown color')
+  const vehicleSpeeds = formatCharacterListValue(char.vehicleSpeed, 'unknown speed')
   const vehiclePart = char.hasVehicle
-    ? `Vehicle: ${char.vehicleType?.trim() || 'Unnamed'} — ${char.vehicleColor?.trim() || 'unknown color'} — ${
-        char.vehicleSpeed?.trim() || 'unknown speed'
-      }`
+    ? hasMultipleCharacterValues(char.vehicleType) ||
+      hasMultipleCharacterValues(char.vehicleColor) ||
+      hasMultipleCharacterValues(char.vehicleSpeed)
+      ? `Vehicles: ${vehicleTypes} — colors: ${vehicleColors} — speeds: ${vehicleSpeeds}`
+      : `Vehicle: ${vehicleTypes} — ${vehicleColors} — ${vehicleSpeeds}`
     : 'No vehicle'
-  return `- ${char.name} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}. ${petPart}. ${vehiclePart}`
+  return `- ${namePart} (${alignment}, ${gender}, age ${char.age}, ${speciesPart}): ${powers}. ${petPart}. ${vehiclePart}`
 }
 
 export function buildStoryText(

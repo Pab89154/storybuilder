@@ -16,6 +16,7 @@ export interface Character {
   id: string
   storyId: string
   name: string
+  nickname?: string
   alignment: CharacterAlignment
   gender: CharacterGender
   age: number
@@ -138,7 +139,7 @@ export function computeFinaleWordTarget(
   return clampChapterWordTarget(raw)
 }
 
-export const PRIMARY_MODEL_ID = 'Qwen2.5-3B-Instruct-q4f16_1-MLC'
+export const PRIMARY_MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
 export const FALLBACK_MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
 
 export const GENRE_SUGGESTIONS = [

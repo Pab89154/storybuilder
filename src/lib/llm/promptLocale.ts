@@ -1,5 +1,9 @@
 import type { Character, Language } from '@/types/story'
 import { LANGUAGE_ENGLISH_NAMES } from '@/lib/storyLanguageMeta'
+import {
+  joinCharacterList,
+  splitCharacterList,
+} from '@/lib/characterFields'
 
 function alignmentLabel(char: Character, language: Language): string {
   const good = char.alignment === 'good'
@@ -55,21 +59,22 @@ function speciesLabel(char: Character, language: Language): string {
         return 'human'
     }
   }
-  const species = char.species?.trim()
-  if (species) {
+  const speciesItems = splitCharacterList(char.species)
+  if (speciesItems.length > 0) {
+    const value = joinCharacterList(speciesItems)
     switch (language) {
       case 'es':
-        return `especie: ${species}`
+        return speciesItems.length > 1 ? `especies: ${value}` : `especie: ${value}`
       case 'zh':
-        return `物种：${species}`
+        return speciesItems.length > 1 ? `物种：${value}` : `物种：${value}`
       case 'ar':
-        return `نوع: ${species}`
+        return speciesItems.length > 1 ? `أنواع: ${value}` : `نوع: ${value}`
       case 'fr':
-        return `espèce : ${species}`
+        return speciesItems.length > 1 ? `espèces : ${value}` : `espèce : ${value}`
       case 'de':
-        return `Art: ${species}`
+        return speciesItems.length > 1 ? `Arten: ${value}` : `Art: ${value}`
       default:
-        return `species: ${species}`
+        return speciesItems.length > 1 ? `species: ${value}` : `species: ${value}`
     }
   }
   switch (language) {
@@ -90,20 +95,36 @@ function speciesLabel(char: Character, language: Language): string {
 
 function superpowerLabel(char: Character, language: Language): string {
   if (char.hasSuperpowers) {
-    return (
-      char.superpowerDescription?.trim() ||
-      (language === 'es'
-        ? 'tiene superpoderes'
-        : language === 'zh'
-          ? '拥有超能力'
-          : language === 'ar'
-            ? 'لديه قوى خارقة'
-            : language === 'fr'
-              ? 'a des super-pouvoirs'
-              : language === 'de'
-                ? 'hat Superkräfte'
-                : 'has superpowers')
-    )
+    const items = splitCharacterList(char.superpowerDescription)
+    if (items.length > 1) {
+      const value = joinCharacterList(items)
+      switch (language) {
+        case 'es':
+          return `superpoderes: ${value}`
+        case 'zh':
+          return `超能力：${value}`
+        case 'ar':
+          return `قوى خارقة: ${value}`
+        case 'fr':
+          return `super-pouvoirs : ${value}`
+        case 'de':
+          return `Superkräfte: ${value}`
+        default:
+          return `superpowers: ${value}`
+      }
+    }
+    if (items.length === 1) return items[0]!
+    return language === 'es'
+      ? 'tiene superpoderes'
+      : language === 'zh'
+        ? '拥有超能力'
+        : language === 'ar'
+          ? 'لديه قوى خارقة'
+          : language === 'fr'
+            ? 'a des super-pouvoirs'
+            : language === 'de'
+              ? 'hat Superkräfte'
+              : 'has superpowers'
   }
   return language === 'es'
     ? 'sin superpoderes'
@@ -120,20 +141,36 @@ function superpowerLabel(char: Character, language: Language): string {
 
 function petSuperpowerLabel(char: Character, language: Language): string {
   if (char.petHasSuperpowers) {
-    return (
-      char.petSuperpowerDescription?.trim() ||
-      (language === 'es'
-        ? 'tiene superpoderes'
-        : language === 'zh'
-          ? '拥有超能力'
-          : language === 'ar'
-            ? 'لديه قوى خارقة'
-            : language === 'fr'
-              ? 'a des super-pouvoirs'
-              : language === 'de'
-                ? 'hat Superkräfte'
-                : 'has superpowers')
-    )
+    const items = splitCharacterList(char.petSuperpowerDescription)
+    if (items.length > 1) {
+      const value = joinCharacterList(items)
+      switch (language) {
+        case 'es':
+          return `superpoderes: ${value}`
+        case 'zh':
+          return `超能力：${value}`
+        case 'ar':
+          return `قوى خارقة: ${value}`
+        case 'fr':
+          return `super-pouvoirs : ${value}`
+        case 'de':
+          return `Superkräfte: ${value}`
+        default:
+          return `superpowers: ${value}`
+      }
+    }
+    if (items.length === 1) return items[0]!
+    return language === 'es'
+      ? 'tiene superpoderes'
+      : language === 'zh'
+        ? '拥有超能力'
+        : language === 'ar'
+          ? 'لديه قوى خارقة'
+          : language === 'fr'
+            ? 'a des super-pouvoirs'
+            : language === 'de'
+              ? 'hat Superkräfte'
+              : 'has superpowers'
   }
   return language === 'es'
     ? 'sin superpoderes'
@@ -163,47 +200,74 @@ function petLabel(char: Character, language: Language): string {
               : 'no pet'
   }
 
+  const nameItems = splitCharacterList(char.petName)
   const name =
-    char.petName?.trim() ||
-    (language === 'es'
-      ? 'mascota sin nombre'
-      : language === 'zh'
-        ? '未命名宠物'
-        : language === 'ar'
-          ? 'حيوان أليف بلا اسم'
-          : language === 'fr'
-            ? 'animal sans nom'
-            : language === 'de'
-              ? 'namenloses Haustier'
-              : 'unnamed pet')
-  const species = char.petSpecies?.trim()
+    nameItems.length > 0
+      ? joinCharacterList(nameItems)
+      : language === 'es'
+        ? 'mascota sin nombre'
+        : language === 'zh'
+          ? '未命名宠物'
+          : language === 'ar'
+            ? 'حيوان أليف بلا اسم'
+            : language === 'fr'
+              ? 'animal sans nom'
+              : language === 'de'
+                ? 'namenloses Haustier'
+                : 'unnamed pet'
+  const speciesItems = splitCharacterList(char.petSpecies)
+  const species = speciesItems.length > 0 ? joinCharacterList(speciesItems) : ''
   const powers = petSuperpowerLabel(char, language)
+  const petWord =
+    nameItems.length > 1 || speciesItems.length > 1
+      ? language === 'es'
+        ? 'mascotas'
+        : language === 'zh'
+          ? '宠物'
+          : language === 'ar'
+            ? 'حيوانات أليفة'
+            : language === 'fr'
+              ? 'animaux'
+              : language === 'de'
+                ? 'Haustiere'
+                : 'pets'
+      : language === 'es'
+        ? 'mascota'
+        : language === 'zh'
+          ? '宠物'
+          : language === 'ar'
+            ? 'حيوان أليف'
+            : language === 'fr'
+              ? 'animal'
+              : language === 'de'
+                ? 'Haustier'
+                : 'pet'
 
   switch (language) {
     case 'es':
       return species
-        ? `mascota: ${name} (${species}), ${powers}`
-        : `mascota: ${name}, ${powers}`
+        ? `${petWord}: ${name} (${species}), ${powers}`
+        : `${petWord}: ${name}, ${powers}`
     case 'zh':
       return species
-        ? `宠物：${name}（${species}），${powers}`
-        : `宠物：${name}，${powers}`
+        ? `${petWord}：${name}（${species}），${powers}`
+        : `${petWord}：${name}，${powers}`
     case 'ar':
       return species
-        ? `حيوان أليف: ${name} (${species})، ${powers}`
-        : `حيوان أليف: ${name}، ${powers}`
+        ? `${petWord}: ${name} (${species})، ${powers}`
+        : `${petWord}: ${name}، ${powers}`
     case 'fr':
       return species
-        ? `animal : ${name} (${species}), ${powers}`
-        : `animal : ${name}, ${powers}`
+        ? `${petWord} : ${name} (${species}), ${powers}`
+        : `${petWord} : ${name}, ${powers}`
     case 'de':
       return species
-        ? `Haustier: ${name} (${species}), ${powers}`
-        : `Haustier: ${name}, ${powers}`
+        ? `${petWord}: ${name} (${species}), ${powers}`
+        : `${petWord}: ${name}, ${powers}`
     default:
       return species
-        ? `pet: ${name} (${species}), ${powers}`
-        : `pet: ${name}, ${powers}`
+        ? `${petWord}: ${name} (${species}), ${powers}`
+        : `${petWord}: ${name}, ${powers}`
   }
 }
 
@@ -222,53 +286,113 @@ function vehicleLabel(char: Character, language: Language): string {
               : 'no vehicle'
   }
 
+  const typeItems = splitCharacterList(char.vehicleType)
   const type =
-    char.vehicleType?.trim() ||
-    (language === 'es'
-      ? 'vehículo sin nombre'
-      : language === 'zh'
-        ? '未命名交通工具'
-        : language === 'ar'
-          ? 'مركبة بلا اسم'
-          : language === 'fr'
-            ? 'véhicule sans nom'
-            : language === 'de'
-              ? 'namenloses Fahrzeug'
-              : 'unnamed vehicle')
-  const color = char.vehicleColor?.trim()
-  const speed = char.vehicleSpeed?.trim()
+    typeItems.length > 0
+      ? joinCharacterList(typeItems)
+      : language === 'es'
+        ? 'vehículo sin nombre'
+        : language === 'zh'
+          ? '未命名交通工具'
+          : language === 'ar'
+            ? 'مركبة بلا اسم'
+            : language === 'fr'
+              ? 'véhicule sans nom'
+              : language === 'de'
+                ? 'namenloses Fahrzeug'
+                : 'unnamed vehicle'
+  const color = joinCharacterList(splitCharacterList(char.vehicleColor))
+  const speed = joinCharacterList(splitCharacterList(char.vehicleSpeed))
+  const vehicleWord =
+    typeItems.length > 1 ||
+    splitCharacterList(char.vehicleColor).length > 1 ||
+    splitCharacterList(char.vehicleSpeed).length > 1
+      ? language === 'es'
+        ? 'vehículos'
+        : language === 'zh'
+          ? '交通工具'
+          : language === 'ar'
+            ? 'مركبات'
+            : language === 'fr'
+              ? 'véhicules'
+              : language === 'de'
+                ? 'Fahrzeuge'
+                : 'vehicles'
+      : language === 'es'
+        ? 'vehículo'
+        : language === 'zh'
+          ? '交通工具'
+          : language === 'ar'
+            ? 'مركبة'
+            : language === 'fr'
+              ? 'véhicule'
+              : language === 'de'
+                ? 'Fahrzeug'
+                : 'vehicle'
 
   switch (language) {
     case 'es':
-      if (color && speed) return `vehículo: ${type}, color ${color}, velocidad ${speed}`
-      if (color) return `vehículo: ${type}, color ${color}`
-      if (speed) return `vehículo: ${type}, velocidad ${speed}`
-      return `vehículo: ${type}`
+      if (color && speed) return `${vehicleWord}: ${type}, colores ${color}, velocidades ${speed}`
+      if (color) return `${vehicleWord}: ${type}, colores ${color}`
+      if (speed) return `${vehicleWord}: ${type}, velocidades ${speed}`
+      return `${vehicleWord}: ${type}`
     case 'zh':
-      if (color && speed) return `交通工具：${type}，${color}，速度 ${speed}`
-      if (color) return `交通工具：${type}，${color}`
-      if (speed) return `交通工具：${type}，速度 ${speed}`
-      return `交通工具：${type}`
+      if (color && speed) return `${vehicleWord}：${type}，颜色 ${color}，速度 ${speed}`
+      if (color) return `${vehicleWord}：${type}，颜色 ${color}`
+      if (speed) return `${vehicleWord}：${type}，速度 ${speed}`
+      return `${vehicleWord}：${type}`
     case 'ar':
-      if (color && speed) return `مركبة: ${type}، لون ${color}، سرعة ${speed}`
-      if (color) return `مركبة: ${type}، لون ${color}`
-      if (speed) return `مركبة: ${type}، سرعة ${speed}`
-      return `مركبة: ${type}`
+      if (color && speed) return `${vehicleWord}: ${type}، ألوان ${color}، سرعات ${speed}`
+      if (color) return `${vehicleWord}: ${type}، ألوان ${color}`
+      if (speed) return `${vehicleWord}: ${type}، سرعات ${speed}`
+      return `${vehicleWord}: ${type}`
     case 'fr':
-      if (color && speed) return `véhicule : ${type}, couleur ${color}, vitesse ${speed}`
-      if (color) return `véhicule : ${type}, couleur ${color}`
-      if (speed) return `véhicule : ${type}, vitesse ${speed}`
-      return `véhicule : ${type}`
+      if (color && speed) return `${vehicleWord} : ${type}, couleurs ${color}, vitesses ${speed}`
+      if (color) return `${vehicleWord} : ${type}, couleurs ${color}`
+      if (speed) return `${vehicleWord} : ${type}, vitesses ${speed}`
+      return `${vehicleWord} : ${type}`
     case 'de':
-      if (color && speed) return `Fahrzeug: ${type}, Farbe ${color}, Geschwindigkeit ${speed}`
-      if (color) return `Fahrzeug: ${type}, Farbe ${color}`
-      if (speed) return `Fahrzeug: ${type}, Geschwindigkeit ${speed}`
-      return `Fahrzeug: ${type}`
+      if (color && speed) return `${vehicleWord}: ${type}, Farben ${color}, Geschwindigkeiten ${speed}`
+      if (color) return `${vehicleWord}: ${type}, Farben ${color}`
+      if (speed) return `${vehicleWord}: ${type}, Geschwindigkeiten ${speed}`
+      return `${vehicleWord}: ${type}`
     default:
-      if (color && speed) return `vehicle: ${type}, color ${color}, speed ${speed}`
-      if (color) return `vehicle: ${type}, color ${color}`
-      if (speed) return `vehicle: ${type}, speed ${speed}`
-      return `vehicle: ${type}`
+      if (color && speed) return `${vehicleWord}: ${type}, colors ${color}, speeds ${speed}`
+      if (color) return `${vehicleWord}: ${type}, colors ${color}`
+      if (speed) return `${vehicleWord}: ${type}, speeds ${speed}`
+      return `${vehicleWord}: ${type}`
+  }
+}
+
+function characterDisplayName(char: Character, language: Language): string {
+  const nicknames = splitCharacterList(char.nickname)
+  if (nicknames.length === 0) return char.name
+  const value = joinCharacterList(nicknames)
+  switch (language) {
+    case 'es':
+      return nicknames.length > 1
+        ? `${char.name} (apodos: ${value})`
+        : `${char.name} (apodo: ${value})`
+    case 'zh':
+      return nicknames.length > 1
+        ? `${char.name}（昵称：${value}）`
+        : `${char.name}（昵称：${value}）`
+    case 'ar':
+      return nicknames.length > 1
+        ? `${char.name} (ألقاب: ${value})`
+        : `${char.name} (لقب: ${value})`
+    case 'fr':
+      return nicknames.length > 1
+        ? `${char.name} (surnoms : ${value})`
+        : `${char.name} (surnom : ${value})`
+    case 'de':
+      return nicknames.length > 1
+        ? `${char.name} (Spitznamen: ${value})`
+        : `${char.name} (Spitzname: ${value})`
+    default:
+      return nicknames.length > 1
+        ? `${char.name} (nicknames: ${value})`
+        : `${char.name} (nickname: ${value})`
   }
 }
 
@@ -295,19 +419,20 @@ export function buildCharacterBible(characters: Character[], language: Language)
       const powers = superpowerLabel(char, language)
       const pet = petLabel(char, language)
       const vehicle = vehicleLabel(char, language)
+      const displayName = characterDisplayName(char, language)
       switch (language) {
         case 'es':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
+          return `- ${displayName}: ${genderLabel(char, language)}, ${char.age} años, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         case 'zh':
-          return `- ${char.name}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}，${pet}，${vehicle}`
+          return `- ${displayName}：${genderLabel(char, language)}，${char.age}岁，${alignmentLabel(char, language)}，${speciesLabel(char, language)}，${powers}，${pet}，${vehicle}`
         case 'ar':
-          return `- ${char.name}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}، ${pet}، ${vehicle}`
+          return `- ${displayName}: ${genderLabel(char, language)}، عمر ${char.age}، ${alignmentLabel(char, language)}، ${speciesLabel(char, language)}، ${powers}، ${pet}، ${vehicle}`
         case 'fr':
-          return `- ${char.name} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
+          return `- ${displayName} : ${genderLabel(char, language)}, ${char.age} ans, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         case 'de':
-          return `- ${char.name}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
+          return `- ${displayName}: ${genderLabel(char, language)}, ${char.age} Jahre, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
         default:
-          return `- ${char.name}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
+          return `- ${displayName}: ${genderLabel(char, language)}, age ${char.age}, ${alignmentLabel(char, language)}, ${speciesLabel(char, language)}, ${powers}, ${pet}, ${vehicle}`
       }
     })
     .join('\n')

@@ -13,6 +13,11 @@ import { addCharacter, deleteCharacter, updateCharacter } from '@/db/database'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
 import { generateRandomCharacter, isRandomCharacterName } from '@/lib/randomCharacter'
+import {
+  formatCharacterListValue,
+  joinCharacterList,
+  splitCharacterList,
+} from '@/lib/characterFields'
 import { cn } from '@/lib/utils'
 import type { Character, CharacterAlignment, CharacterGender } from '@/types/story'
 import type { ReactNode } from 'react'
@@ -45,6 +50,7 @@ function CharacterFieldRow({
 
 const emptyCharacter = {
   name: '',
+  nickname: '',
   alignment: 'good' as CharacterAlignment,
   gender: 'boy' as CharacterGender,
   age: 10,
@@ -76,21 +82,30 @@ export function formatCharacterSummary(
 function formatCharacterDetailSummary(character: Character, t: (key: string) => string): string {
   const alignment = character.alignment === 'good' ? t('characters.good') : t('characters.bad')
   const gender = character.gender === 'boy' ? t('characters.boy') : t('characters.girl')
+  const speciesItems = splitCharacterList(character.species)
   const type = (character.isHuman ?? true)
     ? t('characters.human')
-    : character.species?.trim() || t('characters.nonHuman')
+    : speciesItems.length > 0
+      ? joinCharacterList(speciesItems)
+      : t('characters.nonHuman')
   const parts = [alignment, gender, `${t('characters.age')} ${character.age}`, type]
+  const nicknames = formatCharacterListValue(character.nickname)
+  if (nicknames) parts.push(`"${nicknames}"`)
   if (character.hasSuperpowers) {
-    parts.push(character.superpowerDescription?.trim() || t('characters.superpowers'))
+    const powers = formatCharacterListValue(character.superpowerDescription)
+    parts.push(powers || t('characters.superpowers'))
   }
   if (character.hasPet) {
-    const petName = character.petName?.trim() || t('characters.unnamedPet')
-    const petSpecies = character.petSpecies?.trim()
-    parts.push(petSpecies ? `${petName} (${petSpecies})` : petName)
+    const petNames = formatCharacterListValue(character.petName, t('characters.unnamedPet'))
+    const petSpecies = formatCharacterListValue(character.petSpecies)
+    parts.push(petSpecies ? `${petNames} (${petSpecies})` : petNames)
   }
   if (character.hasVehicle) {
-    const vehicleType = character.vehicleType?.trim() || t('characters.unnamedVehicle')
-    parts.push(vehicleType)
+    const vehicleTypes = formatCharacterListValue(
+      character.vehicleType,
+      t('characters.unnamedVehicle'),
+    )
+    parts.push(vehicleTypes)
   }
   return parts.join(' · ')
 }
@@ -181,6 +196,14 @@ function CharacterCard({
 
       {open ? (
         <div className={cn('flex flex-col', compact ? 'mt-2 gap-1.5 pl-5' : 'mt-3 gap-2 pl-6')}>
+          <CharacterFieldRow label={t('characters.nickname')} compact={compact}>
+            <Input
+              className={cn('w-full', compact && 'h-8 text-xs')}
+              value={character.nickname ?? ''}
+              onChange={(e) => void onUpdate({ nickname: e.target.value })}
+              placeholder={t('characters.nicknamePlaceholder')}
+            />
+          </CharacterFieldRow>
           <CharacterFieldRow label={t('characters.alignment')} compact={compact}>
             <Select
               value={character.alignment}

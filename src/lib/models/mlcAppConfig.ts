@@ -1,11 +1,10 @@
 import { prebuiltAppConfig, type AppConfig } from '@mlc-ai/web-llm'
 import {
-  FALLBACK_MODEL_ID,
   PRIMARY_MODEL_ID,
 } from '@/types/story'
 import { getModelsOrigin } from '@/lib/models/assetConfig'
 
-const HOSTED_MLC_IDS = new Set([PRIMARY_MODEL_ID, FALLBACK_MODEL_ID])
+const HOSTED_MLC_IDS = new Set([PRIMARY_MODEL_ID])
 
 /**
  * When VITE_MODELS_BASE_URL is set, point our text models + wasm libs at that origin.

@@ -429,6 +429,7 @@ export function StorySetupActions({
     generateAutomatic,
     addAdvancedChapter,
     finishBook,
+    requestFinishBook,
     continueAdvanced,
     cancel,
     isGenerating,
@@ -514,16 +515,30 @@ export function StorySetupActions({
       ) : null}
 
       {isGenerating ? (
-        <Button
-          className={buttonClassName}
-          size={buttonClassName ? undefined : 'sm'}
-          variant="outline"
-          onClick={cancel}
-          aria-label={t('workspace.stop')}
-        >
-          <Square className="h-4 w-4" />
-          {t('workspace.stop')}
-        </Button>
+        <>
+          {!story.isBookFinished ? (
+            <Button
+              className={buttonClassName}
+              size={buttonClassName ? undefined : 'sm'}
+              variant="secondary"
+              onClick={() => void requestFinishBook()}
+              title={t('setup.finishBookHint')}
+            >
+              <Flag className="h-4 w-4" />
+              {t('setup.finishBook')}
+            </Button>
+          ) : null}
+          <Button
+            className={buttonClassName}
+            size={buttonClassName ? undefined : 'sm'}
+            variant="outline"
+            onClick={cancel}
+            aria-label={t('workspace.stop')}
+          >
+            <Square className="h-4 w-4" />
+            {t('workspace.stop')}
+          </Button>
+        </>
       ) : null}
     </div>
   )

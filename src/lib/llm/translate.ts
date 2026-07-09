@@ -1,6 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm'
 import { completeText } from '@/lib/llm/engine'
 import { buildTranslationSystemPrompt } from '@/lib/llm/promptLocale'
+import { joinCharacterList, splitCharacterList } from '@/lib/characterFields'
 import { LANGUAGE_ENGLISH_NAMES, untitledStoryTitle } from '@/lib/storyLanguageMeta'
 import type { Character, Language, StoryWithDetails } from '@/types/story'
 
@@ -18,6 +19,28 @@ async function translateText(
     : `Translate this text to ${LANGUAGE_ENGLISH_NAMES[targetLanguage]}:\n\n${trimmed}`
 
   return completeText(engine, buildTranslationSystemPrompt(targetLanguage), userPrompt, 1024)
+}
+
+async function translateCharacterListField(
+  engine: MLCEngine,
+  text: string | undefined,
+  targetLanguage: Language,
+  context: string,
+): Promise<string | undefined> {
+  if (!text?.trim()) return text
+  const items = splitCharacterList(text)
+  if (items.length === 0) return text
+  const translated = await Promise.all(
+    items.map((item, index) =>
+      translateText(
+        engine,
+        item,
+        targetLanguage,
+        items.length > 1 ? `${context} (${index + 1}/${items.length})` : context,
+      ),
+    ),
+  )
+  return joinCharacterList(translated)
 }
 
 export interface DuplicateProgress {
@@ -83,80 +106,91 @@ export async function duplicateStoryWithTranslation(
 
   const characters: Omit<Character, 'id' | 'storyId'>[] = []
   for (const char of source.characters) {
+    const characterLabel = char.name
+    let nickname = char.nickname
+    if (!sameLanguage && char.nickname?.trim()) {
+      nickname = await translateCharacterListField(
+        engine,
+        char.nickname,
+        targetLanguage,
+        `Nickname for character ${characterLabel}`,
+      )
+    }
     let superpowerDescription = char.superpowerDescription
     if (!sameLanguage && char.hasSuperpowers && char.superpowerDescription?.trim()) {
-      superpowerDescription = await translateText(
+      superpowerDescription = await translateCharacterListField(
         engine,
         char.superpowerDescription,
         targetLanguage,
-        `Superpower description for character ${char.name}`,
+        `Superpower description for character ${characterLabel}`,
       )
     }
     let petSuperpowerDescription = char.petSuperpowerDescription
     if (!sameLanguage && char.petHasSuperpowers && char.petSuperpowerDescription?.trim()) {
-      petSuperpowerDescription = await translateText(
+      petSuperpowerDescription = await translateCharacterListField(
         engine,
         char.petSuperpowerDescription,
         targetLanguage,
-        `Pet superpower description for character ${char.name}`,
+        `Pet superpower description for character ${characterLabel}`,
       )
     }
     let petSpecies = char.petSpecies
     if (!sameLanguage && char.hasPet && char.petSpecies?.trim()) {
-      petSpecies = await translateText(
+      petSpecies = await translateCharacterListField(
         engine,
         char.petSpecies,
         targetLanguage,
-        `Pet species for character ${char.name}`,
+        `Pet species for character ${characterLabel}`,
       )
     }
     let species = char.species
     if (!sameLanguage && !(char.isHuman ?? true) && char.species?.trim()) {
-      species = await translateText(
+      species = await translateCharacterListField(
         engine,
         char.species,
         targetLanguage,
-        `Species for character ${char.name}`,
+        `Species for character ${characterLabel}`,
       )
     }
     let petName = char.petName
     if (!sameLanguage && char.hasPet && char.petName?.trim()) {
-      petName = await translateText(
+      petName = await translateCharacterListField(
         engine,
         char.petName,
         targetLanguage,
-        `Pet name for character ${char.name}`,
+        `Pet name for character ${characterLabel}`,
       )
     }
     let vehicleType = char.vehicleType
     if (!sameLanguage && char.hasVehicle && char.vehicleType?.trim()) {
-      vehicleType = await translateText(
+      vehicleType = await translateCharacterListField(
         engine,
         char.vehicleType,
         targetLanguage,
-        `Vehicle type for character ${char.name}`,
+        `Vehicle type for character ${characterLabel}`,
       )
     }
     let vehicleColor = char.vehicleColor
     if (!sameLanguage && char.hasVehicle && char.vehicleColor?.trim()) {
-      vehicleColor = await translateText(
+      vehicleColor = await translateCharacterListField(
         engine,
         char.vehicleColor,
         targetLanguage,
-        `Vehicle color for character ${char.name}`,
+        `Vehicle color for character ${characterLabel}`,
       )
     }
     let vehicleSpeed = char.vehicleSpeed
     if (!sameLanguage && char.hasVehicle && char.vehicleSpeed?.trim()) {
-      vehicleSpeed = await translateText(
+      vehicleSpeed = await translateCharacterListField(
         engine,
         char.vehicleSpeed,
         targetLanguage,
-        `Vehicle speed for character ${char.name}`,
+        `Vehicle speed for character ${characterLabel}`,
       )
     }
     characters.push({
       name: char.name,
+      nickname,
       alignment: char.alignment,
       gender: char.gender,
       age: char.age,

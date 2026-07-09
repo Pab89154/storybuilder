@@ -1,7 +1,6 @@
 import type { InitProgressReport, MLCEngine } from '@mlc-ai/web-llm'
 import { buildMlcAppConfig } from '@/lib/models/mlcAppConfig'
 import {
-  FALLBACK_MODEL_ID,
   PRIMARY_MODEL_ID,
 } from '@/types/story'
 
@@ -21,37 +20,37 @@ export async function detectWebGPU(): Promise<boolean> {
   }
 }
 
-export function getModelIdForTier(tier: ModelTier): string {
-  return tier === 'primary' ? PRIMARY_MODEL_ID : FALLBACK_MODEL_ID
+export function getModelIdForTier(_tier: ModelTier): string {
+  return PRIMARY_MODEL_ID
 }
 
 export async function initEngine(
   onProgress?: (report: InitProgressReport) => void,
 ): Promise<{ engine: MLCEngine; modelId: string; tier: ModelTier; hasWebGPU: boolean }> {
   if (engineInstance && currentModelId) {
+    const hasWebGPU = await detectWebGPU()
     return {
       engine: engineInstance,
       modelId: currentModelId,
-      tier: currentModelId === PRIMARY_MODEL_ID ? 'primary' : 'fallback',
-      hasWebGPU: currentModelId === PRIMARY_MODEL_ID,
+      tier: 'primary',
+      hasWebGPU,
     }
   }
 
   if (initPromise) {
     const engine = await initPromise
+    const hasWebGPU = await detectWebGPU()
     return {
       engine,
       modelId: currentModelId!,
-      tier: currentModelId === PRIMARY_MODEL_ID ? 'primary' : 'fallback',
-      hasWebGPU: currentModelId === PRIMARY_MODEL_ID,
+      tier: 'primary',
+      hasWebGPU,
     }
   }
 
   initPromise = (async () => {
     const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
-    const hasWebGPU = await detectWebGPU()
-    const tier: ModelTier = hasWebGPU ? 'primary' : 'fallback'
-    const modelId = getModelIdForTier(tier)
+    const modelId = PRIMARY_MODEL_ID
 
     const appConfig = buildMlcAppConfig()
     const engineOptions = {
@@ -82,11 +81,12 @@ export async function initEngine(
 
   try {
     const engine = await initPromise
+    const hasWebGPU = await detectWebGPU()
     return {
       engine,
       modelId: currentModelId!,
-      tier: currentModelId === PRIMARY_MODEL_ID ? 'primary' : 'fallback',
-      hasWebGPU: currentModelId === PRIMARY_MODEL_ID,
+      tier: 'primary',
+      hasWebGPU,
     }
   } catch (error) {
     initPromise = null

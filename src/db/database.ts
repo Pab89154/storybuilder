@@ -228,6 +228,20 @@ export class StoryBuilderDB extends Dexie {
           }
         })
       })
+    this.version(14)
+      .stores({
+        stories:
+          'id, updatedAt, createdAt, title, folderId, genre, sortOrder, bookmarkPageIndex, creationMode, [folderId+sortOrder]',
+        characters: 'id, storyId',
+        paragraphs: 'id, storyId, chapterId, [storyId+order]',
+        chapters: 'id, storyId, [storyId+order]',
+        folders: 'id, order, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('characters').toCollection().modify((char: Character) => {
+          if (char.nickname === undefined) char.nickname = ''
+        })
+      })
   }
 }
 

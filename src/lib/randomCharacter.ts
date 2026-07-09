@@ -6,6 +6,7 @@ import type {
 
 export type RandomCharacterData = {
   name: string
+  nickname?: string
   alignment: CharacterAlignment
   gender: CharacterGender
   age: number
@@ -42,6 +43,15 @@ const GIRL_NAMES: Record<Language, readonly string[]> = {
   ar: ['Layla', 'Maya', 'Sara', 'Nour', 'Yasmin', 'Lina', 'Hana', 'Amira', 'Dina', 'Rania'],
   fr: ['Emma', 'Jade', 'Louise', 'Alice', 'Chloé', 'Lina', 'Rose', 'Anna', 'Camille', 'Zoé'],
   de: ['Emma', 'Mia', 'Hannah', 'Sophia', 'Lina', 'Lea', 'Marie', 'Anna', 'Clara', 'Nora'],
+}
+
+const NICKNAMES: Record<Language, readonly string[]> = {
+  en: ['Ace', 'Spark', 'Shadow', 'Sunny', 'Rocket', 'Flash', 'Star', 'Hero', 'Dash', 'Lucky'],
+  es: ['Rayo', 'Estrella', 'Campeón', 'Trueno', 'Suerte', 'Cohete', 'Héroe', 'Flash', 'Sol', 'Genio'],
+  zh: ['小星', '闪电', '英雄', '幸运', '火箭', '阳光', '影子', '天才', '飞侠', '宝贝'],
+  ar: ['نجم', 'بطل', 'برق', 'محظوظ', 'صاروخ', 'شمس', 'ظل', 'فلاش', 'أسد', 'كناري'],
+  fr: ['Étoile', 'Héros', 'Éclair', 'Chance', 'Fusée', 'Soleil', 'Ombre', 'Flash', 'As', 'Champion'],
+  de: ['Star', 'Held', 'Blitz', 'Glück', 'Rakete', 'Sonne', 'Schatten', 'Flash', 'Ass', 'Champion'],
 }
 
 const SPECIES: Record<Language, readonly string[]> = {
@@ -189,6 +199,14 @@ function pickUniqueName(
   return `${pick(pool)} ${Math.floor(Math.random() * 90) + 10}`
 }
 
+function pickSuperpowers(language: Language): string {
+  const first = pick(SUPERPOWERS[language])
+  if (Math.random() >= 0.25) return first
+  let second = pick(SUPERPOWERS[language])
+  while (second === first) second = pick(SUPERPOWERS[language])
+  return `${first}, ${second}`
+}
+
 export function isRandomCharacterName(name: string): boolean {
   return name.trim().toLowerCase() === RANDOM_NAME_TRIGGER
 }
@@ -205,21 +223,23 @@ export function generateRandomCharacter(
   const hasPet = Math.random() < 0.45
   const petHasSuperpowers = hasPet && Math.random() < 0.3
   const hasVehicle = Math.random() < 0.35
+  const hasNickname = Math.random() < 0.35
 
   return {
     name: pickUniqueName(language, gender, existingNames),
+    nickname: hasNickname ? pick(NICKNAMES[language]) : '',
     alignment,
     gender,
     age,
     isHuman,
     species: isHuman ? '' : pick(SPECIES[language]),
     hasSuperpowers,
-    superpowerDescription: hasSuperpowers ? pick(SUPERPOWERS[language]) : '',
+    superpowerDescription: hasSuperpowers ? pickSuperpowers(language) : '',
     hasPet,
     petName: hasPet ? pick(PET_NAMES[language]) : '',
     petSpecies: hasPet ? pick(PET_SPECIES[language]) : '',
     petHasSuperpowers,
-    petSuperpowerDescription: petHasSuperpowers ? pick(SUPERPOWERS[language]) : '',
+    petSuperpowerDescription: petHasSuperpowers ? pickSuperpowers(language) : '',
     hasVehicle,
     vehicleType: hasVehicle ? pick(VEHICLE_TYPES[language]) : '',
     vehicleColor: hasVehicle ? pick(VEHICLE_COLORS[language]) : '',

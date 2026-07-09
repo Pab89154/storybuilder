@@ -18,7 +18,7 @@ The interface is available in **English**, **Spanish**, **Mandarin Chinese**, **
 
 - **Node.js 20+**
 - **Chrome 113+** or **Edge 113+** (recommended for WebGPU)
-- ~**3 GB** free disk/browser cache for the AI model (one-time download)
+- ~**700 MB** free disk/browser cache for the AI model (one-time download)
 - Stable internet connection for the **first visit only** (model download)
 
 ## Quick start
@@ -47,14 +47,15 @@ Then open the Network URL shown in the terminal (e.g. `http://192.168.x.x:5173`)
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build |
 
-## AI models
+## AI model
 
-| Mode | Model | When |
-|------|-------|------|
-| **Primary** | Qwen2.5-3B-Instruct (~2 GB) | WebGPU available |
-| **Fallback** | Llama-3.2-1B-Instruct (~700 MB) | No WebGPU |
+| Model | Size |
+|-------|------|
+| **Llama-3.2-1B-Instruct** | ~700 MB |
 
 The first load shows a download progress bar. The model is cached by the browser for future visits.
+
+WebGPU is used when available for faster inference; the same model runs without it.
 
 ### Check WebGPU
 
@@ -69,7 +70,7 @@ Open `chrome://gpu` in Chrome and confirm **WebGPU** is enabled. For best qualit
 
 ## Quality expectations
 
-The in-browser 3B model produces good children's stories but will **not match cloud GPT-4 quality**. The fallback 1B model is slower and less coherent — use Chrome/Edge with WebGPU for the best experience.
+The in-browser 1B model produces good children's stories but will **not match cloud GPT-4 quality**. Use Chrome/Edge with WebGPU for the best speed.
 
 ## Project structure
 
