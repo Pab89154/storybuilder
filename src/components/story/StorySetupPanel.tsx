@@ -13,13 +13,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { InputWithMic } from '@/components/ui/input-with-mic'
+import { TextareaWithMic } from '@/components/ui/textarea-with-mic'
 import {
   AddCharacterButton,
   CharacterPanel,
   formatCharacterSummary,
 } from '@/components/story/CharacterPanel'
-import { useGeneration } from '@/hooks/useGeneration'
+import { cancelActiveGeneration, requestFinishActiveBook, useGeneration } from '@/hooks/useGeneration'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
 import { useStoryStore } from '@/store/storyStore'
@@ -196,7 +197,8 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
               </label>
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-stone-600">{t('setup.prompt')}</span>
-                <Textarea
+                <TextareaWithMic
+                  language={story.language}
                   value={story.prompt}
                   onChange={(event) => void onSaveMeta({ prompt: event.target.value })}
                   placeholder={t('setup.promptPlaceholder')}
@@ -350,7 +352,8 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                             <span className="w-5 shrink-0 text-xs tabular-nums text-stone-400">
                               {index + 1}
                             </span>
-                            <Input
+                            <InputWithMic
+                              language={story.language}
                               value={chapterTitleDrafts[chapter.id] ?? chapter.title}
                               disabled={isGenerating}
                               onChange={(event) => {
@@ -386,7 +389,8 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
               {isAdvanced && !story.isBookFinished ? (
                 <label className="block space-y-1 text-xs">
                   <span className="font-medium text-stone-600">{t('setup.nextChapterNotes')}</span>
-                  <Textarea
+                  <TextareaWithMic
+                    language={story.language}
                     value={advancedChapterBrief}
                     disabled={isGenerating}
                     onChange={(event) => setAdvancedChapterBrief(event.target.value)}
@@ -429,9 +433,7 @@ export function StorySetupActions({
     generateAutomatic,
     addAdvancedChapter,
     finishBook,
-    requestFinishBook,
     continueAdvanced,
-    cancel,
     isGenerating,
     isLoading,
   } = useGeneration()
@@ -449,6 +451,9 @@ export function StorySetupActions({
     bookProgress.inProgressChapter
       ? t('setup.chapterInProgressHint', { title: bookProgress.inProgressChapter.title })
       : undefined
+
+  const canFinishBook =
+    !story.isBookFinished && (isAutomatic || isAdvanced) && (hasChapters || isGenerating)
 
   return (
     <div className={cn(className ?? 'flex flex-wrap items-center gap-1')}>
@@ -499,46 +504,40 @@ export function StorySetupActions({
             <Plus className="h-4 w-4" />
             {t('setup.newChapter')}
           </Button>
-          {hasChapters ? (
-            <Button
-              className={buttonClassName}
-              size={buttonClassName ? undefined : 'sm'}
-              variant="outline"
-              onClick={() => void finishBook()}
-              disabled={isGenerating || isLoading}
-            >
-              <Flag className="h-4 w-4" />
-              {t('setup.finish')}
-            </Button>
-          ) : null}
         </>
       ) : null}
 
+      {canFinishBook ? (
+        <Button
+          className={buttonClassName}
+          size={buttonClassName ? undefined : 'sm'}
+          variant={isGenerating ? 'secondary' : 'outline'}
+          onClick={() => {
+            if (isGenerating) {
+              requestFinishActiveBook()
+              return
+            }
+            void finishBook()
+          }}
+          disabled={isLoading}
+          title={isGenerating ? t('setup.finishBookHint') : undefined}
+        >
+          <Flag className="h-4 w-4" />
+          {t('setup.finishBook')}
+        </Button>
+      ) : null}
+
       {isGenerating ? (
-        <>
-          {!story.isBookFinished ? (
-            <Button
-              className={buttonClassName}
-              size={buttonClassName ? undefined : 'sm'}
-              variant="secondary"
-              onClick={() => void requestFinishBook()}
-              title={t('setup.finishBookHint')}
-            >
-              <Flag className="h-4 w-4" />
-              {t('setup.finishBook')}
-            </Button>
-          ) : null}
-          <Button
-            className={buttonClassName}
-            size={buttonClassName ? undefined : 'sm'}
-            variant="outline"
-            onClick={cancel}
-            aria-label={t('workspace.stop')}
-          >
-            <Square className="h-4 w-4" />
-            {t('workspace.stop')}
-          </Button>
-        </>
+        <Button
+          className={buttonClassName}
+          size={buttonClassName ? undefined : 'sm'}
+          variant="outline"
+          onClick={cancelActiveGeneration}
+          aria-label={t('workspace.stop')}
+        >
+          <Square className="h-4 w-4" />
+          {t('workspace.stop')}
+        </Button>
       ) : null}
     </div>
   )

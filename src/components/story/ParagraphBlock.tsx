@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { TextareaWithMic } from '@/components/ui/textarea-with-mic'
 import { deleteParagraph, updateParagraph } from '@/db/database'
 import { useStories } from '@/hooks/useStories'
 import { useGeneration } from '@/hooks/useGeneration'
@@ -67,7 +67,7 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
           className={cn(
             'flex justify-end gap-0.5',
             isFlow
-              ? 'absolute -right-1 top-0 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/para:opacity-100 sm:group-focus-within/para:opacity-100'
+              ? 'relative mb-1 justify-end opacity-100 sm:absolute sm:-right-1 sm:top-0 sm:z-10 sm:mb-0 sm:opacity-0 sm:transition-opacity sm:group-hover/para:opacity-100 sm:group-focus-within/para:opacity-100'
               : 'mb-2',
           )}
         >
@@ -85,6 +85,7 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
               variant="ghost"
               size="icon"
               className={cn(isFlow && 'h-7 w-7 bg-white/90 shadow-sm')}
+              disabled={isGenerating}
               onClick={() => {
                 setEditContent(paragraph.content)
                 setIsEditing(true)
@@ -97,6 +98,7 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
               variant="ghost"
               size="icon"
               className={cn(isFlow && 'h-7 w-7 bg-white/90 shadow-sm')}
+              disabled={isGenerating}
               onClick={() => void handleDelete()}
               title={t('paragraph.delete')}
             >
@@ -107,7 +109,8 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
 
       {isEditing ? (
         <div className="space-y-3">
-          <Textarea
+          <TextareaWithMic
+            language={activeStory?.language ?? 'en'}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             rows={6}

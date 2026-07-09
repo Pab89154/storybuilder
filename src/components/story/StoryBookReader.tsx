@@ -34,6 +34,10 @@ import {
   type PaginateOptions,
   type StoryPage,
 } from '@/lib/storyPagination'
+import { useBlindKidMode } from '@/context/blindKidMode'
+import { useSpeechSynthesis, type SpeechPlaybackStatus } from '@/hooks/useSpeechSynthesis'
+import { getPageSpeechText, getSpreadSpeechText } from '@/lib/speechPageText'
+import { ReaderSpeechControls } from '@/components/ui/field-with-mic'
 import { cn } from '@/lib/utils'
 import type { Language } from '@/types/story'
 import type { Chapter, Paragraph } from '@/types/story'
@@ -277,6 +281,14 @@ function ReaderToolbar({
   onToggleFullPage,
   isFullPage,
   compact = false,
+  usePageNavigation = false,
+  speechText = '',
+  speechStatus = 'idle',
+  speechSupported = false,
+  onListen,
+  onPause,
+  onResume,
+  onStop,
 }: {
   leftPageIndex: number
   pagesLength: number
@@ -289,6 +301,14 @@ function ReaderToolbar({
   onToggleFullPage: () => void
   isFullPage: boolean
   compact?: boolean
+  usePageNavigation?: boolean
+  speechText?: string
+  speechStatus?: SpeechPlaybackStatus
+  speechSupported?: boolean
+  onListen?: () => void
+  onPause?: () => void
+  onResume?: () => void
+  onStop?: () => void
 }) {
   const t = useUiT()
   const rightPageIndex = leftPageIndex + 1
@@ -327,9 +347,30 @@ function ReaderToolbar({
           <ChevronsRight className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
+        {onListen && onPause && onResume && onStop ? (
+          <ReaderSpeechControls
+            text={speechText}
+            compact={compact}
+            status={speechStatus}
+            isSupported={speechSupported}
+            onListen={onListen}
+            onPause={onPause}
+            onResume={onResume}
+            onStop={onStop}
+          />
+        ) : null}
         {bookmarkPageIndex !== null && !isBookmarked ? (
-          <Button variant="outline" size="sm" className={compact ? 'h-7 text-xs' : undefined} onClick={() => onGoToSpread(spreadIndexFromPage(bookmarkPageIndex))}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={compact ? 'h-7 text-xs' : undefined}
+            onClick={() =>
+              onGoToSpread(
+                usePageNavigation ? bookmarkPageIndex : spreadIndexFromPage(bookmarkPageIndex),
+              )
+            }
+          >
             <Bookmark className="h-3.5 w-3.5 fill-current text-[var(--color-primary)]" />
             {t('reader.pageShort', { n: bookmarkPageIndex + 1 })}
           </Button>
@@ -354,6 +395,7 @@ function ReaderToolbar({
 
 function FullPageSpread({
   storyTitle,
+  language,
   paragraphs,
   chapters = [],
   paginateOptions,
@@ -366,6 +408,7 @@ function FullPageSpread({
   onClose,
 }: {
   storyTitle: string
+  language: Language
   paragraphs: Paragraph[]
   chapters?: Chapter[]
   paginateOptions: PaginateOptions
@@ -378,7 +421,10 @@ function FullPageSpread({
   onClose: () => void
 }) {
   const t = useUiT()
+  const { blindKidMode } = useBlindKidMode()
+  const autoReadRef = useRef(false)
   const { layout, lineHeightPx, setContainerRef } = useViewportBookLayout(fontSizePx)
+  const { speak, pause, resume, cancel, status, isSupported } = useSpeechSynthesis(language)
   const prevLayoutRef = useRef(layout)
   const pages = useMemo(() => (layout ? paginateStory(paragraphs, paginateOptions, layout, chapters) : []), [paragraphs, paginateOptions, layout, chapters])
   const totalSpreads = spreadCount(pages.length)
@@ -400,6 +446,14 @@ function FullPageSpread({
   const leftPage = pages[textPageIndex] ?? null
   const rightPage = pages[textPageIndex + 1] ?? null
   const isBookmarked = bookmarkPageIndex === textPageIndex
+  const spreadSpeechText = getSpreadSpeechText(leftPage, rightPage)
+
+  useEffect(() => {
+    if (!blindKidMode || !autoReadRef.current) return
+    speak(spreadSpeechText)
+  }, [blindKidMode, spreadIndex, spreadSpeechText, speak])
+
+  useEffect(() => () => cancel(), [cancel])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -430,6 +484,19 @@ function FullPageSpread({
             onToggleFullPage={onClose}
             isFullPage
             compact
+            speechText={spreadSpeechText}
+            speechStatus={status}
+            speechSupported={isSupported}
+            onListen={() => {
+              autoReadRef.current = true
+              speak(spreadSpeechText)
+            }}
+            onPause={pause}
+            onResume={resume}
+            onStop={() => {
+              autoReadRef.current = false
+              cancel()
+            }}
           />
         ) : (
           <span className="flex items-center gap-1.5 text-xs text-stone-400">
@@ -459,6 +526,7 @@ function FullPageSpread({
 export function StoryBookReader({
   storyId,
   storyTitle,
+  language,
   paragraphs,
   chapters = [],
   bookmarkPageIndex,
@@ -468,6 +536,9 @@ export function StoryBookReader({
   fillHeight = false,
 }: StoryBookReaderProps) {
   const t = useUiT()
+  const { blindKidMode } = useBlindKidMode()
+  const autoReadRef = useRef(false)
+  const { speak, pause, resume, cancel, status, isSupported } = useSpeechSynthesis(language)
   const restoredBookmarkStoryRef = useRef<string | null>(null)
   const paginateOptions = useMemo(() => ({ streamingParagraphId, streamingContent }), [streamingParagraphId, streamingContent])
   const [currentPage, setCurrentPage] = useState(0)
@@ -475,6 +546,7 @@ export function StoryBookReader({
   const [isFullPage, setIsFullPage] = useState(false)
   const [fontSizePx, setFontSizePx] = useState(readStoredFontSize)
   const { layout: inlineLayout, lineHeightPx: inlineLineHeight, setContainerRef } = useInlineBookLayout(fontSizePx)
+  const lastInlineLayoutRef = useRef(inlineLayout)
   const inlinePages = useMemo(() => paginateStory(paragraphs, paginateOptions, inlineLayout, chapters), [paragraphs, paginateOptions, inlineLayout, chapters])
 
   useEffect(() => {
@@ -489,17 +561,27 @@ export function StoryBookReader({
   }, [inlinePages.length])
 
   useEffect(() => {
-    if (restoredBookmarkStoryRef.current === storyId) return
     if (bookmarkPageIndex === null || inlinePages.length === 0) return
+    const layoutChanged = !layoutsEqual(lastInlineLayoutRef.current, inlineLayout)
+    lastInlineLayoutRef.current = inlineLayout
+    if (restoredBookmarkStoryRef.current === storyId && !layoutChanged) return
     const clamped = Math.min(Math.max(0, bookmarkPageIndex), inlinePages.length - 1)
     restoredBookmarkStoryRef.current = storyId
     setCurrentPage(clamped)
     setSpreadIndex(spreadIndexFromPage(clamped))
-  }, [storyId, bookmarkPageIndex, inlinePages.length])
+  }, [storyId, bookmarkPageIndex, inlinePages.length, inlineLayout])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isFullPage) return
+      const target = event.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
       if (event.key === 'ArrowRight') setCurrentPage((page) => Math.min(page + 1, inlinePages.length - 1))
       if (event.key === 'ArrowLeft') setCurrentPage((page) => Math.max(page - 1, 0))
     }
@@ -517,6 +599,19 @@ export function StoryBookReader({
   }, [isFullPage])
 
   const hasText = paragraphs.some((paragraph) => paragraph.content.trim().length > 0)
+  const inlinePage = useMemo(() => {
+    if (inlinePages.length === 0) return undefined
+    return inlinePages[Math.min(currentPage, inlinePages.length - 1)] ?? inlinePages[0]
+  }, [inlinePages, currentPage])
+  const inlineSpeechText = useMemo(() => getPageSpeechText(inlinePage), [inlinePage])
+
+  useEffect(() => {
+    if (!blindKidMode || !autoReadRef.current || !inlineSpeechText) return
+    speak(inlineSpeechText)
+  }, [blindKidMode, currentPage, inlineSpeechText, speak])
+
+  useEffect(() => () => cancel(), [cancel])
+
   const openFullPage = () => {
     setSpreadIndex(spreadIndexFromPage(currentPage))
     setIsFullPage(true)
@@ -534,7 +629,6 @@ export function StoryBookReader({
     )
   }
 
-  const inlinePage = inlinePages[Math.min(currentPage, inlinePages.length - 1)] ?? inlinePages[0]
   const inlineBookmarked = bookmarkPageIndex === currentPage
   const inlinePageShell = fillHeight ? 'min-h-0 flex-1' : 'min-h-[min(70dvh,720px)]'
 
@@ -553,16 +647,36 @@ export function StoryBookReader({
             onSetBookmark={onSetBookmark}
             onToggleFullPage={openFullPage}
             isFullPage={false}
+            usePageNavigation
+            speechText={inlineSpeechText}
+            speechStatus={status}
+            speechSupported={isSupported}
+            onListen={() => {
+              autoReadRef.current = true
+              speak(inlineSpeechText)
+            }}
+            onPause={pause}
+            onResume={resume}
+            onStop={() => {
+              autoReadRef.current = false
+              cancel()
+            }}
           />
         </div>
         <div ref={setContainerRef} className={cn('w-full min-w-0', fillHeight ? 'min-h-0 flex-1' : inlinePageShell)}>
-          <InlineBookPage
-            page={inlinePage}
-            pageNumber={currentPage + 1}
-            isBookmarked={inlineBookmarked}
-            lineHeightPx={inlineLineHeight}
-            fontSizePx={fontSizePx}
-          />
+          {inlinePage ? (
+            <InlineBookPage
+              page={inlinePage}
+              pageNumber={currentPage + 1}
+              isBookmarked={inlineBookmarked}
+              lineHeightPx={inlineLineHeight}
+              fontSizePx={fontSizePx}
+            />
+          ) : (
+            <div className="flex h-full min-h-[12rem] items-center justify-center text-[var(--color-muted-foreground)]">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          )}
         </div>
         <p className="text-center text-[10px] text-[var(--color-muted-foreground)]">{t('reader.fullScreenHint')}</p>
       </div>
@@ -571,6 +685,7 @@ export function StoryBookReader({
         ? createPortal(
             <FullPageSpread
               storyTitle={storyTitle}
+              language={language}
               paragraphs={paragraphs}
               chapters={chapters}
               paginateOptions={paginateOptions}

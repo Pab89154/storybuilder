@@ -9,7 +9,7 @@ import {
   normalizeReaderAge,
 } from '@/types/story'
 import { buildSearchText } from '@/lib/search'
-import { findPageForParagraph, paginateStory } from '@/lib/storyPagination'
+import { findPageForParagraph } from '@/lib/storyPagination'
 import { generateId } from '@/lib/utils'
 
 export class StoryBuilderDB extends Dexie {
@@ -102,9 +102,27 @@ export class StoryBuilderDB extends Dexie {
         folders: 'id, order, updatedAt',
       })
       .upgrade(async (tx) => {
-        await tx.table('stories').toCollection().modify((story: Story & { bookmarkParagraphId?: string | null }) => {
+        const stories = await tx.table('stories').toArray() as Array<
+          Story & { bookmarkParagraphId?: string | null }
+        >
+        const paragraphs = await tx.table('paragraphs').toArray() as Paragraph[]
+        for (const story of stories) {
           if (story.bookmarkPageIndex === undefined) story.bookmarkPageIndex = null
-        })
+          const legacyId = story.bookmarkParagraphId
+          if (story.bookmarkPageIndex === null && legacyId) {
+            const storyParagraphs = paragraphs
+              .filter((paragraph) => paragraph.storyId === story.id)
+              .sort((a, b) => a.order - b.order)
+            story.bookmarkPageIndex = findPageForParagraph(
+              storyParagraphs,
+              legacyId,
+              undefined,
+              undefined,
+            )
+            story.bookmarkParagraphId = null
+          }
+          await tx.table('stories').put(story)
+        }
       })
     this.version(7)
       .stores({
@@ -308,12 +326,9 @@ export async function getStoryWithDetails(storyId: string) {
     } as Partial<Story & { bookmarkParagraphId?: string | null }>)
   }
 
-  if (bookmarkPageIndex !== null) {
-    const pageCount = paginateStory(paragraphs, undefined, undefined, chapters).length
-    if (bookmarkPageIndex < 0 || bookmarkPageIndex >= pageCount) {
-      bookmarkPageIndex = pageCount > 0 ? Math.min(bookmarkPageIndex, pageCount - 1) : null
-      await db.stories.update(storyId, { bookmarkPageIndex })
-    }
+  if (bookmarkPageIndex !== null && bookmarkPageIndex < 0) {
+    bookmarkPageIndex = null
+    await db.stories.update(storyId, { bookmarkPageIndex })
   }
 
   return { ...normalizedStory, bookmarkPageIndex, characters, chapters, paragraphs }
@@ -665,7 +680,16 @@ export async function replaceChaptersForStory(
   const now = Date.now()
   const saved: Chapter[] = []
 
-  await db.transaction('rw', db.chapters, async () => {
+  await db.transaction('rw', db.chapters, db.paragraphs, async () => {
+    const existingChapterCount = await db.chapters.where('storyId').equals(storyId).count()
+    if (existingChapterCount > 0) {
+      await db.paragraphs
+        .where('storyId')
+        .equals(storyId)
+        .modify((paragraph) => {
+          paragraph.chapterId = null
+        })
+    }
     await db.chapters.where('storyId').equals(storyId).delete()
     for (const chapter of chapters) {
       const record: Chapter = {

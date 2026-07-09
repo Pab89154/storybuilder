@@ -5,6 +5,7 @@ import {
   ChevronRight,
   FolderPlus,
   Library,
+  MessageSquare,
   PanelLeft,
   PanelLeftClose,
   Pencil,
@@ -35,11 +36,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { SidebarStoryDnD, type StoryGroupConfig } from '@/components/layout/SidebarStoryDnD'
+import { BlindKidModeToggle } from '@/components/layout/BlindKidModeToggle'
 import { NightModeToggle } from '@/components/layout/NightModeToggle'
 import { UiLanguageSwitcher } from '@/components/layout/UiLanguageSwitcher'
+import { FeedbackDialog } from '@/components/layout/FeedbackDialog'
 import { NewStoryDialog } from '@/components/story/NewStoryDialog'
 import { LanguageFilterSelect } from '@/components/story/LanguageSelect'
 import { useUiT } from '@/i18n/context'
+import { cancelGenerationIfActive } from '@/hooks/useGeneration'
 import { useStories } from '@/hooks/useStories'
 import { UNCATEGORIZED_KEY } from '@/lib/folderContainers'
 import { cn } from '@/lib/utils'
@@ -90,6 +94,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const [newFolderName, setNewFolderName] = useState('')
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [showNewStory, setShowNewStory] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({})
   const [highlightFolderId, setHighlightFolderId] = useState<string | null>(null)
@@ -122,6 +127,9 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     isActive: activeStoryId === story.id,
     inCollection,
     onLoad: (id: string) => {
+      if (id !== activeStoryId) {
+        cancelGenerationIfActive()
+      }
       void loadStory(id)
       if (!collapsed && window.matchMedia('(max-width: 767px)').matches) {
         onToggleCollapsed()
@@ -227,6 +235,10 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     />
   )
 
+  const feedbackDialog = (
+    <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
+  )
+
   const openNewCollection = () => {
     setShowNewFolder(true)
     if (collapsed) onToggleCollapsed()
@@ -269,6 +281,17 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       >
         <FolderPlus className="h-5 w-5" />
       </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9"
+        onClick={() => setShowFeedback(true)}
+        title={t('feedback.button')}
+        aria-label={t('feedback.button')}
+      >
+        <MessageSquare className="h-5 w-5" />
+      </Button>
+      <BlindKidModeToggle size="rail" />
       <NightModeToggle size="rail" />
     </div>
   )
@@ -328,6 +351,17 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           </div>
           <NightModeToggle size="compact" />
         </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2 w-full justify-start gap-2 text-[var(--color-muted-foreground)]"
+          onClick={() => setShowFeedback(true)}
+        >
+          <MessageSquare className="h-4 w-4" />
+          {t('feedback.button')}
+        </Button>
+        <BlindKidModeToggle variant="menu" />
 
         {showNewFolder && (
           <div className="mt-3 flex gap-2">
@@ -469,6 +503,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         </div>
     </aside>
     {newStoryDialog}
+    {feedbackDialog}
     </>
   )
 }

@@ -2,6 +2,7 @@ import type { MLCEngine } from '@mlc-ai/web-llm'
 import {
   addChapter,
   addParagraph,
+  deleteParagraph,
   getNextChapterOrder,
   getNextParagraphOrder,
   replaceChaptersForStory,
@@ -15,9 +16,10 @@ import {
   finaleChapterTitle,
   untitledStoryTitle,
 } from '@/lib/storyLanguageMeta'
-import { finalizeGeneratedParagraph, shouldStopGenerationLoop } from '@/lib/llm/chunkLimits'
+import { finalizeGeneratedParagraph, MAX_GENERATION_CHUNKS, shouldStopGenerationLoop } from '@/lib/llm/chunkLimits'
 import { streamCompletion } from '@/lib/llm/engine'
 import { generationTemperature } from '@/lib/llm/temperature'
+import { useStoryStore } from '@/store/storyStore'
 import {
   buildChapterGeneratePrompt,
   buildChapterOutlinePrompt,
@@ -172,33 +174,57 @@ async function generateChapterContent(
     })
     callbacks.onParagraphStart(paragraph)
 
-    const chunkText = await streamCompletion(
-      engine,
-      buildSystemPrompt(story.language, story.readerAge),
-      userPrompt,
-      (token) => {
-        streamingContent += token
-        callbacks.onToken(token, paragraph.id)
-      },
-      callbacks.signal,
-      generationTemperature(story.language),
-    )
+    try {
+      const chunkText = await streamCompletion(
+        engine,
+        buildSystemPrompt(story.language, story.readerAge),
+        userPrompt,
+        (token) => {
+          streamingContent += token
+          callbacks.onToken(token, paragraph.id)
+        },
+        callbacks.signal,
+        generationTemperature(story.language),
+      )
 
-    const finalContent = chunkText || streamingContent
-    const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
-    if (!saved) {
-      if (shouldStopGenerationLoop(wordsSoFar, chapter.targetWordCount, chunkAttempts, 0)) break
-      continue
+      const finalContent = chunkText || streamingContent
+      const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
+      if (!saved) {
+        if (shouldStopGenerationLoop(wordsSoFar, chapter.targetWordCount, chunkAttempts, 0)) {
+          if (chunkAttempts >= MAX_GENERATION_CHUNKS) callbacks.onChunkLimitReached?.()
+          break
+        }
+        continue
+      }
+      newParagraphs.push(saved)
+      callbacks.onParagraphComplete(saved)
+
+      const wordsInChunk = countWords(saved.content)
+      wordsSoFar += wordsInChunk
+      callbacks.onProgress(wordsSoFar, chapter.targetWordCount)
+      order += 1
+
+      if (shouldStopGenerationLoop(wordsSoFar, chapter.targetWordCount, chunkAttempts, wordsInChunk)) {
+        if (chunkAttempts >= MAX_GENERATION_CHUNKS && wordsSoFar < chapter.targetWordCount) {
+          callbacks.onChunkLimitReached?.()
+        }
+        break
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        if (streamingContent.trim()) {
+          const saved = await finalizeGeneratedParagraph(paragraph, streamingContent, 'ai')
+          if (saved) {
+            newParagraphs.push(saved)
+            callbacks.onParagraphComplete(saved)
+          }
+        } else {
+          await deleteParagraph(paragraph.id)
+        }
+        break
+      }
+      throw err
     }
-    newParagraphs.push(saved)
-    callbacks.onParagraphComplete(saved)
-
-    const wordsInChunk = countWords(saved.content)
-    wordsSoFar += wordsInChunk
-    callbacks.onProgress(wordsSoFar, chapter.targetWordCount)
-    order += 1
-
-    if (shouldStopGenerationLoop(wordsSoFar, chapter.targetWordCount, chunkAttempts, wordsInChunk)) break
   }
 
   return newParagraphs
@@ -216,6 +242,13 @@ export async function generateOrContinueAutomaticBook(
     existingChapters.length > 0
       ? [...existingChapters].sort((a, b) => a.order - b.order)
       : await createChapterOutline(engine, story, characters, callbacks)
+
+  if (
+    existingChapters.length === 0 &&
+    useStoryStore.getState().activeStoryId === story.id
+  ) {
+    useStoryStore.getState().updateActiveChapters(chapters)
+  }
 
   let allParagraphs = [...existingParagraphs]
 

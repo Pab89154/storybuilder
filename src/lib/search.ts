@@ -31,7 +31,7 @@ export function buildSearchText(
 
 export function storyMatchesQuery(story: Story, query: string): boolean {
   if (!query.trim()) return true
-  return story.searchText.includes(query.trim().toLowerCase())
+  return (story.searchText ?? '').includes(query.trim().toLowerCase())
 }
 
 export function collectGenres(stories: Story[]): string[] {

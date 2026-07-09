@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, Plus, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -19,7 +20,7 @@ import {
   splitCharacterList,
 } from '@/lib/characterFields'
 import { cn } from '@/lib/utils'
-import type { Character, CharacterAlignment, CharacterGender } from '@/types/story'
+import type { Character, CharacterAlignment, CharacterGender, Language } from '@/types/story'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
@@ -116,6 +117,7 @@ function isNewCharacterDraft(character: Character): boolean {
 
 function CharacterCard({
   character,
+  language,
   compact,
   t,
   onUpdate,
@@ -123,6 +125,7 @@ function CharacterCard({
   onDelete,
 }: {
   character: Character
+  language: Language
   compact?: boolean
   t: (key: string) => string
   onUpdate: (updates: Partial<Omit<Character, 'id' | 'storyId'>>) => void
@@ -156,7 +159,8 @@ function CharacterCard({
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
-            <Input
+            <InputWithMic
+              language={language}
               value={character.name}
               onChange={(e) => void onUpdate({ name: e.target.value })}
               onBlur={() => {
@@ -197,7 +201,8 @@ function CharacterCard({
       {open ? (
         <div className={cn('flex flex-col', compact ? 'mt-2 gap-1.5 pl-5' : 'mt-3 gap-2 pl-6')}>
           <CharacterFieldRow label={t('characters.nickname')} compact={compact}>
-            <Input
+            <InputWithMic
+              language={language}
               className={cn('w-full', compact && 'h-8 text-xs')}
               value={character.nickname ?? ''}
               onChange={(e) => void onUpdate({ nickname: e.target.value })}
@@ -284,7 +289,8 @@ function CharacterCard({
 
           {!(character.isHuman ?? true) && (
             <CharacterFieldRow label={t('characters.species')} compact={compact}>
-              <Input
+              <InputWithMic
+                language={language}
                 className={cn('w-full', compact && 'h-8 text-xs')}
                 value={character.species ?? ''}
                 onChange={(e) => void onUpdate({ species: e.target.value })}
@@ -295,7 +301,8 @@ function CharacterCard({
 
           {character.hasSuperpowers && (
             <CharacterFieldRow label={t('characters.powers')} compact={compact}>
-              <Input
+              <InputWithMic
+                language={language}
                 className={cn('w-full', compact && 'h-8 text-xs')}
                 value={character.superpowerDescription ?? ''}
                 onChange={(e) =>
@@ -333,7 +340,8 @@ function CharacterCard({
           {character.hasPet && (
             <>
               <CharacterFieldRow label={t('characters.petName')} compact={compact}>
-                <Input
+                <InputWithMic
+                  language={language}
                   className={cn('w-full', compact && 'h-8 text-xs')}
                   value={character.petName ?? ''}
                   onChange={(e) => void onUpdate({ petName: e.target.value })}
@@ -341,7 +349,8 @@ function CharacterCard({
                 />
               </CharacterFieldRow>
               <CharacterFieldRow label={t('characters.petSpecies')} compact={compact}>
-                <Input
+                <InputWithMic
+                  language={language}
                   className={cn('w-full', compact && 'h-8 text-xs')}
                   value={character.petSpecies ?? ''}
                   onChange={(e) => void onUpdate({ petSpecies: e.target.value })}
@@ -370,7 +379,8 @@ function CharacterCard({
               </CharacterFieldRow>
               {character.petHasSuperpowers && (
                 <CharacterFieldRow label={t('characters.petPowers')} compact={compact}>
-                  <Input
+                  <InputWithMic
+                    language={language}
                     className={cn('w-full', compact && 'h-8 text-xs')}
                     value={character.petSuperpowerDescription ?? ''}
                     onChange={(e) =>
@@ -408,7 +418,8 @@ function CharacterCard({
           {character.hasVehicle && (
             <>
               <CharacterFieldRow label={t('characters.vehicleType')} compact={compact}>
-                <Input
+                <InputWithMic
+                  language={language}
                   className={cn('w-full', compact && 'h-8 text-xs')}
                   value={character.vehicleType ?? ''}
                   onChange={(e) => void onUpdate({ vehicleType: e.target.value })}
@@ -416,7 +427,8 @@ function CharacterCard({
                 />
               </CharacterFieldRow>
               <CharacterFieldRow label={t('characters.vehicleColor')} compact={compact}>
-                <Input
+                <InputWithMic
+                  language={language}
                   className={cn('w-full', compact && 'h-8 text-xs')}
                   value={character.vehicleColor ?? ''}
                   onChange={(e) => void onUpdate({ vehicleColor: e.target.value })}
@@ -424,7 +436,8 @@ function CharacterCard({
                 />
               </CharacterFieldRow>
               <CharacterFieldRow label={t('characters.vehicleSpeed')} compact={compact}>
-                <Input
+                <InputWithMic
+                  language={language}
                   className={cn('w-full', compact && 'h-8 text-xs')}
                   value={character.vehicleSpeed ?? ''}
                   onChange={(e) => void onUpdate({ vehicleSpeed: e.target.value })}
@@ -553,6 +566,7 @@ export function CharacterPanel({
             <CharacterCard
               key={character.id}
               character={character}
+              language={activeStory.language}
               compact={compact}
               t={t}
               onUpdate={(updates) => handleUpdate(character.id, updates)}

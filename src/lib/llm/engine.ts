@@ -20,7 +20,8 @@ export async function detectWebGPU(): Promise<boolean> {
   }
 }
 
-export function getModelIdForTier(_tier: ModelTier): string {
+export function getModelIdForTier(tier: ModelTier): string {
+  void tier
   return PRIMARY_MODEL_ID
 }
 
@@ -96,6 +97,27 @@ export async function initEngine(
   }
 }
 
+export async function interruptActiveGeneration(): Promise<void> {
+  if (!engineInstance) return
+  try {
+    await engineInstance.interruptGenerate()
+  } catch {
+    /* ignore — engine may already be idle */
+  }
+}
+
+function bindStreamAbort(engine: MLCEngine, signal?: AbortSignal): (() => void) | undefined {
+  if (!signal) return undefined
+  const onAbort = () => {
+    void engine.interruptGenerate()
+  }
+  if (signal.aborted) {
+    onAbort()
+    return undefined
+  }
+  signal.addEventListener('abort', onAbort, { once: true })
+  return () => signal.removeEventListener('abort', onAbort)
+}
 export async function completeText(
   engine: MLCEngine,
   systemPrompt: string,
@@ -124,6 +146,11 @@ export async function streamCompletion(
   signal?: AbortSignal,
   temperature = 0.8,
 ): Promise<string> {
+  if (signal?.aborted) {
+    await engine.interruptGenerate()
+    throw new DOMException('Generation aborted', 'AbortError')
+  }
+
   const chunks = await engine.chat.completions.create({
     messages: [
       { role: 'system', content: systemPrompt },
@@ -135,22 +162,47 @@ export async function streamCompletion(
     stream_options: { include_usage: false },
   })
 
-  let fullText = ''
+  const unbindAbort = bindStreamAbort(engine, signal)
 
-  for await (const chunk of chunks) {
-    if (signal?.aborted) {
-      await engine.interruptGenerate()
-      throw new DOMException('Generation aborted', 'AbortError')
+  const abortRace = signal
+    ? signal.aborted
+      ? Promise.reject<never>(new DOMException('Generation aborted', 'AbortError'))
+      : new Promise<never>((_, reject) => {
+          signal.addEventListener(
+            'abort',
+            () => reject(new DOMException('Generation aborted', 'AbortError')),
+            { once: true },
+          )
+        })
+    : null
+
+  const consumeStream = async (): Promise<string> => {
+    let fullText = ''
+
+    for await (const chunk of chunks) {
+      if (signal?.aborted) {
+        await engine.interruptGenerate()
+        throw new DOMException('Generation aborted', 'AbortError')
+      }
+
+      const delta = chunk.choices[0]?.delta?.content ?? ''
+      if (delta) {
+        fullText += delta
+        onToken(delta)
+      }
     }
 
-    const delta = chunk.choices[0]?.delta?.content ?? ''
-    if (delta) {
-      fullText += delta
-      onToken(delta)
-    }
+    return fullText.trim()
   }
 
-  return fullText.trim()
+  try {
+    if (abortRace) {
+      return await Promise.race([consumeStream(), abortRace])
+    }
+    return await consumeStream()
+  } finally {
+    unbindAbort?.()
+  }
 }
 
 export async function unloadEngine(): Promise<void> {

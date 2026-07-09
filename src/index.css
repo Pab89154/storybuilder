@@ -83,47 +83,47 @@ body {
     0 4px 24px rgba(0, 0, 0, 0.18);
 }
 
-/* Night mode: dark surfaces with a red tone at ~75% intensity (hue 27, chroma × 0.75) */
+/* Night mode: neutral dark surfaces (no red/warm tint) */
 html.night-mode {
-  --color-background: oklch(0.13 0.038 27);
-  --color-foreground: oklch(0.93 0.025 27);
-  --color-card: oklch(0.17 0.045 27);
-  --color-card-foreground: oklch(0.93 0.025 27);
-  --color-primary: oklch(0.64 0.135 27);
-  --color-primary-foreground: oklch(0.98 0.015 27);
-  --color-secondary: oklch(0.22 0.048 27);
-  --color-secondary-foreground: oklch(0.9 0.03 27);
-  --color-muted: oklch(0.2 0.042 27);
-  --color-muted-foreground: oklch(0.74 0.04 27);
-  --color-accent: oklch(0.24 0.052 27);
-  --color-accent-foreground: oklch(0.93 0.025 27);
-  --color-destructive: oklch(0.58 0.17 27);
-  --color-destructive-foreground: oklch(0.98 0.01 27);
-  --color-border: oklch(0.3 0.055 27);
-  --color-input: oklch(0.22 0.048 27);
-  --color-ring: oklch(0.64 0.135 27);
-  --color-sidebar: oklch(0.15 0.04 27);
-  --color-sidebar-foreground: oklch(0.9 0.03 27);
-  --color-sidebar-accent: oklch(0.23 0.05 27);
+  --color-background: oklch(0.14 0.012 265);
+  --color-foreground: oklch(0.93 0.01 265);
+  --color-card: oklch(0.18 0.014 265);
+  --color-card-foreground: oklch(0.93 0.01 265);
+  --color-primary: oklch(0.62 0.18 265);
+  --color-primary-foreground: oklch(0.98 0.005 265);
+  --color-secondary: oklch(0.22 0.015 265);
+  --color-secondary-foreground: oklch(0.9 0.01 265);
+  --color-muted: oklch(0.2 0.012 265);
+  --color-muted-foreground: oklch(0.72 0.015 265);
+  --color-accent: oklch(0.24 0.016 265);
+  --color-accent-foreground: oklch(0.93 0.01 265);
+  --color-destructive: oklch(0.55 0.2 25);
+  --color-destructive-foreground: oklch(0.98 0.005 265);
+  --color-border: oklch(0.3 0.014 265);
+  --color-input: oklch(0.22 0.014 265);
+  --color-ring: oklch(0.62 0.18 265);
+  --color-sidebar: oklch(0.16 0.012 265);
+  --color-sidebar-foreground: oklch(0.9 0.01 265);
+  --color-sidebar-accent: oklch(0.23 0.015 265);
 }
 
 html.night-mode .book-paper {
-  background-color: oklch(0.18 0.048 27);
+  background-color: oklch(0.19 0.012 265);
   background-image:
-    radial-gradient(ellipse 120% 80% at 10% 20%, rgba(120, 40, 40, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 100% 70% at 90% 80%, rgba(90, 30, 30, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 120% 80% at 10% 20%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 70% at 90% 80%, rgba(0, 0, 0, 0.08) 0%, transparent 50%),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 3px,
-      rgba(80, 30, 30, 0.06) 3px,
-      rgba(80, 30, 30, 0.06) 4px
+      rgba(255, 255, 255, 0.02) 3px,
+      rgba(255, 255, 255, 0.02) 4px
     ),
-    linear-gradient(165deg, oklch(0.2 0.05 27) 0%, oklch(0.16 0.045 27) 48%, oklch(0.14 0.04 27) 100%);
+    linear-gradient(165deg, oklch(0.21 0.012 265) 0%, oklch(0.17 0.01 265) 48%, oklch(0.15 0.01 265) 100%);
   box-shadow:
-    inset 0 0 40px rgba(60, 20, 20, 0.25),
+    inset 0 0 40px rgba(255, 255, 255, 0.04),
     0 4px 24px rgba(0, 0, 0, 0.45);
-  color: oklch(0.9 0.03 27);
+  color: oklch(0.9 0.01 265);
 }
 
 html.night-mode .bg-white {
@@ -131,62 +131,73 @@ html.night-mode .bg-white {
 }
 
 html.night-mode .text-stone-900 {
-  color: oklch(0.92 0.025 27) !important;
+  color: oklch(0.92 0.01 265) !important;
 }
 
 html.night-mode .text-stone-400 {
-  color: oklch(0.68 0.04 27) !important;
+  color: oklch(0.68 0.012 265) !important;
 }
 
 html.night-mode .text-stone-500,
 html.night-mode .text-stone-600,
 html.night-mode .text-stone-800 {
-  color: oklch(0.72 0.04 27) !important;
+  color: oklch(0.74 0.012 265) !important;
 }
 
 html.night-mode .border-stone-200\/80,
 html.night-mode .border-stone-200 {
-  border-color: oklch(0.32 0.05 27 / 0.8) !important;
+  border-color: oklch(0.32 0.014 265 / 0.8) !important;
 }
 
 html.night-mode .bg-stone-50\/40,
 html.night-mode .bg-stone-50 {
-  background-color: oklch(0.16 0.038 27 / 0.85) !important;
+  background-color: oklch(0.17 0.012 265 / 0.85) !important;
 }
 
 html.night-mode .from-violet-100\/50 {
-  --tw-gradient-from: oklch(0.22 0.06 27 / 0.55) !important;
+  --tw-gradient-from: oklch(0.22 0.03 265 / 0.55) !important;
 }
 
 html.night-mode .to-amber-50\/60 {
-  --tw-gradient-to: oklch(0.18 0.05 27 / 0.65) !important;
+  --tw-gradient-to: oklch(0.18 0.012 265 / 0.65) !important;
 }
 
 html.night-mode .bg-amber-200\/30 {
-  background-color: oklch(0.28 0.08 27 / 0.35) !important;
+  background-color: oklch(0.28 0.04 85 / 0.35) !important;
 }
 
 html.night-mode .border-amber-200 {
-  border-color: oklch(0.45 0.1 27 / 0.55) !important;
+  border-color: oklch(0.45 0.06 85 / 0.55) !important;
 }
 
 html.night-mode .bg-amber-50 {
-  background-color: oklch(0.22 0.06 27 / 0.55) !important;
+  background-color: oklch(0.22 0.04 85 / 0.55) !important;
 }
 
 html.night-mode .text-amber-950,
 html.night-mode .text-amber-800 {
-  color: oklch(0.88 0.04 27) !important;
+  color: oklch(0.88 0.04 85) !important;
 }
 
 html.night-mode .border-red-200 {
-  border-color: oklch(0.45 0.12 27 / 0.6) !important;
+  border-color: oklch(0.45 0.12 25 / 0.6) !important;
 }
 
 html.night-mode .bg-red-50 {
-  background-color: oklch(0.22 0.06 27 / 0.65) !important;
+  background-color: oklch(0.22 0.06 25 / 0.65) !important;
 }
 
 html.night-mode .text-red-800 {
-  color: oklch(0.85 0.06 27) !important;
+  color: oklch(0.85 0.08 25) !important;
+}
+
+html.blind-kid-mode :focus-visible {
+  outline-width: 3px;
+  outline-offset: 3px;
+}
+
+html.blind-kid-mode button:focus-visible,
+html.blind-kid-mode input:focus-visible,
+html.blind-kid-mode textarea:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 45%, transparent);
 }

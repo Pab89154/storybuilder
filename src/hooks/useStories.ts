@@ -16,8 +16,11 @@ import {
 import { ensureStoriesBootstrapped } from '@/lib/storiesBootstrap'
 import { collectGenres, storyMatchesQuery } from '@/lib/search'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
+import { cancelGenerationIfActive } from '@/hooks/useGeneration'
 import { useStoryStore } from '@/store/storyStore'
 import type { FolderFilter, Language, Story } from '@/types/story'
+
+const loadStoryRequestRef = { current: 0 }
 
 function filterByFolder<T extends { folderId: string | null }>(
   items: T[],
@@ -51,7 +54,6 @@ export function useStories() {
   const pendingMetaRef = useRef<Partial<Story>>({})
   const pendingMetaStoryIdRef = useRef<string | null>(null)
   const persistMetaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const loadStoryRequestRef = useRef(0)
 
   const refreshStories = useCallback(async () => {
     const [allStories, allFolders] = await Promise.all([listStories(), listFolders()])
@@ -70,12 +72,27 @@ export function useStories() {
 
   const flushStoryMeta = useCallback(async () => {
     const storyId = pendingMetaStoryIdRef.current
-    const pending = pendingMetaRef.current
-    pendingMetaRef.current = {}
-    pendingMetaStoryIdRef.current = null
-    if (!storyId || Object.keys(pending).length === 0) return
-    await flushStoryMetaForStory(storyId, pending)
-  }, [flushStoryMetaForStory])
+    if (!storyId) return
+    const pending = { ...pendingMetaRef.current }
+    if (Object.keys(pending).length === 0) return
+    try {
+      await updateStory(storyId, pending)
+      await refreshStories()
+      if (pendingMetaStoryIdRef.current === storyId) {
+        const remaining = { ...pendingMetaRef.current }
+        for (const key of Object.keys(pending) as (keyof Story)[]) {
+          delete remaining[key]
+        }
+        pendingMetaRef.current = remaining
+        if (Object.keys(remaining).length === 0) {
+          pendingMetaStoryIdRef.current = null
+        }
+      }
+    } catch {
+      pendingMetaStoryIdRef.current = storyId
+      pendingMetaRef.current = { ...pending, ...pendingMetaRef.current }
+    }
+  }, [refreshStories])
 
   useEffect(() => {
     const storyIdAtMount = activeStoryId
@@ -133,6 +150,10 @@ export function useStories() {
 
   const removeStory = useCallback(
     async (storyId: string) => {
+      const { generatingStoryId } = useStoryStore.getState()
+      if (generatingStoryId === storyId) {
+        cancelGenerationIfActive()
+      }
       await deleteStory(storyId)
       await refreshStories()
       if (activeStoryId === storyId) {

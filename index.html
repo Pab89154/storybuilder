@@ -11,6 +11,9 @@
           document.documentElement.classList.add('night-mode');
           document.documentElement.style.colorScheme = 'dark';
         }
+        if (localStorage.getItem('storybuilder-blind-kid-mode') === 'true') {
+          document.documentElement.classList.add('blind-kid-mode');
+        }
       } catch (e) {}
     </script>
     <title>StoryBuilder</title>

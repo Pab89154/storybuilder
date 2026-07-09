@@ -96,6 +96,22 @@ export function buildStoryText(
   return lines.join('\n').trim() + '\n'
 }
 
+function sanitizeExportFilename(title: string): string {
+  const sanitized = title
+    .trim()
+    .split('')
+    .filter((char) => {
+      const code = char.charCodeAt(0)
+      if (code < 32) return false
+      return !'<>:"/\\|?*'.includes(char)
+    })
+    .join('')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80)
+    .trim()
+  return sanitized || 'story'
+}
+
 export function downloadStoryTxt(
   story: Story,
   characters: Character[],
@@ -106,7 +122,7 @@ export function downloadStoryTxt(
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
-  const safeTitle = story.title.replace(/[^\w\s-]/g, '').trim() || 'story'
+  const safeTitle = sanitizeExportFilename(story.title)
   anchor.href = url
   anchor.download = `${safeTitle}.txt`
   anchor.click()

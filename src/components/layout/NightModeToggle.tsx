@@ -14,10 +14,9 @@ export function NightModeToggle({
   const t = useUiT()
   const { nightMode, toggleNightMode } = useNightMode()
 
-  const iconClass =
-    size === 'rail' ? 'h-5 w-5' : size === 'compact' ? 'h-4 w-4' : 'h-5 w-5'
+  const iconClass = 'h-5 w-5'
   const buttonClass =
-    size === 'rail' ? 'h-9 w-9' : size === 'compact' ? 'h-8 w-8' : 'h-9 w-9'
+    size === 'rail' ? 'h-9 w-9' : size === 'compact' ? 'h-8 w-8 shrink-0' : 'h-9 w-9'
 
   return (
     <Button

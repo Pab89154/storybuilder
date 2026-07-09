@@ -9,7 +9,7 @@ import {
   StepForward,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -29,7 +29,7 @@ import { DuplicateStoryDialog } from '@/components/story/DuplicateStoryDialog'
 import { WelcomeScreen } from '@/components/layout/WelcomeScreen'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
-import { useGeneration } from '@/hooks/useGeneration'
+import { cancelActiveGeneration, useGeneration } from '@/hooks/useGeneration'
 import { useStoryStore } from '@/store/storyStore'
 import { cn } from '@/lib/utils'
 
@@ -99,7 +99,7 @@ function ViewModeToggle({
 export function StoryWorkspace() {
   const t = useUiT()
   const { activeStory, saveStoryMeta, folders, moveStory, setBookmark } = useStories()
-  const { generate, continueStory, cancel, isGenerating, isLoading } = useGeneration()
+  const { generate, continueStory, isGenerating, isLoading } = useGeneration()
   const { wordCount, generationError, isDuplicating, streamingParagraphId, streamingContent, advancedChapterBrief } =
     useStoryStore()
   const streamingWordCount =
@@ -171,7 +171,8 @@ export function StoryWorkspace() {
               className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
               aria-hidden
             />
-            <Input
+            <InputWithMic
+              language={activeStory.language}
               value={activeStory.title}
               onChange={(e) => void saveStoryMeta({ title: e.target.value })}
               placeholder={t('workspace.storyTitle')}
@@ -217,7 +218,7 @@ export function StoryWorkspace() {
               />
             ) : null}
             {isGenerating && !isChapterBook ? (
-              <Button className={toolbarItemClass} variant="outline" onClick={cancel}>
+              <Button className={toolbarItemClass} variant="outline" onClick={cancelActiveGeneration}>
                 <Square className="h-4 w-4" />
                 {t('workspace.stop')}
               </Button>
@@ -254,7 +255,8 @@ export function StoryWorkspace() {
             onValueChange={(language) => void saveStoryMeta({ language }, { persistNow: true })}
             triggerClassName="h-9 min-w-[6.5rem] flex-1 text-xs sm:h-8 sm:w-[7.5rem] sm:flex-none"
           />
-          <Input
+          <InputWithMic
+            language={activeStory.language}
             list="genre-suggestions"
             value={activeStory.genre ?? ''}
             onChange={(e) => void saveStoryMeta({ genre: e.target.value })}

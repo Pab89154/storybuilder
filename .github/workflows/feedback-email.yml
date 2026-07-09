@@ -1,0 +1,27 @@
+name: Feedback email notification
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  notify:
+    if: contains(github.event.issue.labels.*.name, 'feedback') || startsWith(github.event.issue.title, '[Feedback]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.mail.me.com
+          server_port: 587
+          secure: true
+          username: ${{ secrets.FEEDBACK_SMTP_USER }}
+          password: ${{ secrets.FEEDBACK_SMTP_PASSWORD }}
+          from: StoryBuilder Feedback <${{ secrets.FEEDBACK_SMTP_USER }}>
+          to: pmolinasamayoa@icloud.com
+          subject: "StoryBuilder Feedback: ${{ github.event.issue.title }}"
+          body: |
+            New feedback issue #${{ github.event.issue.number }} by @${{ github.event.issue.user.login }}
+
+            ${{ github.event.issue.body }}
+
+            View on GitHub: ${{ github.event.issue.html_url }}

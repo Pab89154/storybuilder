@@ -1,6 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm'
 import {
   addParagraph,
+  deleteParagraph,
   getNextParagraphOrder,
   getStoryWithDetails,
   replaceParagraphContent,
@@ -9,6 +10,7 @@ import {
 import { countWords, truncateTitle } from '@/lib/utils'
 import {
   finalizeGeneratedParagraph,
+  MAX_GENERATION_CHUNKS,
   shouldStopGenerationLoop,
 } from '@/lib/llm/chunkLimits'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
@@ -32,6 +34,7 @@ export interface GenerationCallbacks {
   onParagraphStart: (paragraph: Paragraph) => void
   onParagraphComplete: (paragraph: Paragraph) => void
   onProgress: (words: number, target: number) => void
+  onChunkLimitReached?: () => void
   signal?: AbortSignal
 }
 
@@ -81,33 +84,57 @@ export async function generateStoryFromScratch(
     const paragraph = await persistStreamingParagraph(story.id, order, '', 'ai', null)
     callbacks.onParagraphStart(paragraph)
 
-    const chunkText = await streamCompletion(
-      engine,
-      buildSystemPrompt(story.language, story.readerAge),
-      userPrompt,
-      (token) => {
-        streamingContent += token
-        callbacks.onToken(token, paragraph.id)
-      },
-      callbacks.signal,
-      generationTemperature(story.language),
-    )
+    try {
+      const chunkText = await streamCompletion(
+        engine,
+        buildSystemPrompt(story.language, story.readerAge),
+        userPrompt,
+        (token) => {
+          streamingContent += token
+          callbacks.onToken(token, paragraph.id)
+        },
+        callbacks.signal,
+        generationTemperature(story.language),
+      )
 
-    const finalContent = chunkText || streamingContent
-    const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
-    if (!saved) {
-      if (shouldStopGenerationLoop(wordsSoFar, story.targetWordCount, chunkAttempts, 0)) break
-      continue
+      const finalContent = chunkText || streamingContent
+      const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
+      if (!saved) {
+        if (shouldStopGenerationLoop(wordsSoFar, story.targetWordCount, chunkAttempts, 0)) {
+          if (chunkAttempts >= MAX_GENERATION_CHUNKS) callbacks.onChunkLimitReached?.()
+          break
+        }
+        continue
+      }
+      created.push(saved)
+      callbacks.onParagraphComplete(saved)
+
+      const wordsInChunk = countWords(saved.content)
+      wordsSoFar += wordsInChunk
+      callbacks.onProgress(wordsSoFar, story.targetWordCount)
+      order += 1
+
+      if (shouldStopGenerationLoop(wordsSoFar, story.targetWordCount, chunkAttempts, wordsInChunk)) {
+        if (chunkAttempts >= MAX_GENERATION_CHUNKS && wordsSoFar < story.targetWordCount) {
+          callbacks.onChunkLimitReached?.()
+        }
+        break
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        if (streamingContent.trim()) {
+          const saved = await finalizeGeneratedParagraph(paragraph, streamingContent, 'ai')
+          if (saved) {
+            created.push(saved)
+            callbacks.onParagraphComplete(saved)
+          }
+        } else {
+          await deleteParagraph(paragraph.id)
+        }
+        break
+      }
+      throw err
     }
-    created.push(saved)
-    callbacks.onParagraphComplete(saved)
-
-    const wordsInChunk = countWords(saved.content)
-    wordsSoFar += wordsInChunk
-    callbacks.onProgress(wordsSoFar, story.targetWordCount)
-    order += 1
-
-    if (shouldStopGenerationLoop(wordsSoFar, story.targetWordCount, chunkAttempts, wordsInChunk)) break
   }
 
   if (created.length > 0 && !story.prompt.trim()) {
@@ -139,31 +166,45 @@ export async function continueStory(
   const paragraph = await persistStreamingParagraph(story.id, order, '', 'ai', null)
   callbacks.onParagraphStart(paragraph)
 
-  const chunkText = await streamCompletion(
-    engine,
-    buildSystemPrompt(story.language, story.readerAge),
-    userPrompt,
-    (token) => {
-      streamingContent += token
-      callbacks.onToken(token, paragraph.id)
-    },
-    callbacks.signal,
-    generationTemperature(story.language),
-  )
+  try {
+    const chunkText = await streamCompletion(
+      engine,
+      buildSystemPrompt(story.language, story.readerAge),
+      userPrompt,
+      (token) => {
+        streamingContent += token
+        callbacks.onToken(token, paragraph.id)
+      },
+      callbacks.signal,
+      generationTemperature(story.language),
+    )
 
-  const finalContent = chunkText || streamingContent
-  const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
-  if (!saved) {
-    throw new Error('Generation produced empty content')
+    const finalContent = chunkText || streamingContent
+    const saved = await finalizeGeneratedParagraph(paragraph, finalContent, 'ai')
+    if (!saved) {
+      throw new Error('Generation produced empty content')
+    }
+    callbacks.onParagraphComplete(saved)
+
+    const totalWords =
+      existingParagraphs.reduce((sum, p) => sum + countWords(p.content), 0) +
+      countWords(saved.content)
+    callbacks.onProgress(totalWords, story.targetWordCount)
+
+    return saved
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      if (streamingContent.trim()) {
+        const saved = await finalizeGeneratedParagraph(paragraph, streamingContent, 'ai')
+        if (saved) {
+          callbacks.onParagraphComplete(saved)
+          return saved
+        }
+      }
+      await deleteParagraph(paragraph.id)
+    }
+    throw err
   }
-  callbacks.onParagraphComplete(saved)
-
-  const totalWords =
-    existingParagraphs.reduce((sum, p) => sum + countWords(p.content), 0) +
-    countWords(saved.content)
-  callbacks.onProgress(totalWords, story.targetWordCount)
-
-  return saved
 }
 
 export async function regenerateParagraph(

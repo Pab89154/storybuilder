@@ -88,3 +88,21 @@ src/
 ## License
 
 MIT
+
+## Feedback email setup (maintainers)
+
+The app includes a **Feedback** button in the sidebar. When a user submits feedback, it opens a pre-filled GitHub Issue. A GitHub Actions workflow (`.github/workflows/feedback-email.yml`) emails **pmolinasamayoa@icloud.com** when a new feedback issue is created.
+
+### One-time GitHub secrets
+
+1. Create an [Apple ID app-specific password](https://appleid.apple.com) (Sign-In and Security → App-Specific Passwords).
+2. In the GitHub repo, go to **Settings → Secrets and variables → Actions** and add:
+   - `FEEDBACK_SMTP_USER` — your iCloud email (e.g. `pmolinasamayoa@icloud.com`)
+   - `FEEDBACK_SMTP_PASSWORD` — the app-specific password (not your Apple ID password)
+
+### Test
+
+1. Open the app and click **Feedback** in the sidebar.
+2. Fill in a message and click **Continue on GitHub**.
+3. Submit the issue on GitHub.
+4. Confirm the **Feedback email notification** workflow runs and the email arrives.
