@@ -293,6 +293,8 @@ export const zh = {
     loadingModel: '正在加载 AI 模型…',
     preparingTranslation: '正在准备翻译…',
     savingDuplicate: '正在保存复制的故事…',
+    savingTranslation: '正在保存翻译后的故事…',
+    translationFailed: '翻译失败',
   },
   feedback: {
     button: '反馈',

@@ -299,6 +299,8 @@ export const de = {
     loadingModel: 'KI-Modell wird geladen…',
     preparingTranslation: 'Übersetzung wird vorbereitet…',
     savingDuplicate: 'Duplikat wird gespeichert…',
+    savingTranslation: 'Übersetzte Geschichte wird gespeichert…',
+    translationFailed: 'Übersetzung fehlgeschlagen',
   },
   feedback: {
     button: 'Feedback',

@@ -139,8 +139,8 @@ export function computeFinaleWordTarget(
   return clampChapterWordTarget(raw)
 }
 
-export const PRIMARY_MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
-export const FALLBACK_MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+export const PRIMARY_MODEL_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
+export const FALLBACK_MODEL_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
 
 export const GENRE_SUGGESTIONS = [
   'Adventure',

@@ -29,6 +29,7 @@ import { DuplicateStoryDialog } from '@/components/story/DuplicateStoryDialog'
 import { WelcomeScreen } from '@/components/layout/WelcomeScreen'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
+import { useStoryLanguage } from '@/hooks/useStoryLanguage'
 import { cancelActiveGeneration, useGeneration } from '@/hooks/useGeneration'
 import { useStoryStore } from '@/store/storyStore'
 import { cn } from '@/lib/utils'
@@ -99,9 +100,17 @@ function ViewModeToggle({
 export function StoryWorkspace() {
   const t = useUiT()
   const { activeStory, saveStoryMeta, folders, moveStory, setBookmark } = useStories()
+  const { changeStoryLanguage } = useStoryLanguage()
   const { generate, continueStory, isGenerating, isLoading } = useGeneration()
-  const { wordCount, generationError, isDuplicating, streamingParagraphId, streamingContent, advancedChapterBrief } =
-    useStoryStore()
+  const {
+    wordCount,
+    generationError,
+    isDuplicating,
+    duplicateProgress,
+    streamingParagraphId,
+    streamingContent,
+    advancedChapterBrief,
+  } = useStoryStore()
   const streamingWordCount =
     streamingParagraphId && streamingContent
       ? { paragraphId: streamingParagraphId, content: streamingContent }
@@ -250,11 +259,17 @@ export function StoryWorkspace() {
 
         {viewMode === 'edit' ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <LanguageSelect
-            value={activeStory.language}
-            onValueChange={(language) => void saveStoryMeta({ language }, { persistNow: true })}
-            triggerClassName="h-9 min-w-[6.5rem] flex-1 text-xs sm:h-8 sm:w-[7.5rem] sm:flex-none"
-          />
+          <div className="flex min-w-[6.5rem] flex-1 flex-col gap-1 sm:w-[7.5rem] sm:flex-none">
+            <LanguageSelect
+              value={activeStory.language}
+              disabled={isGenerating || isDuplicating}
+              onValueChange={(language) => void changeStoryLanguage(activeStory, language)}
+              triggerClassName="h-9 w-full text-xs sm:h-8"
+            />
+            {isDuplicating && duplicateProgress ? (
+              <span className="text-[10px] text-[var(--color-muted-foreground)]">{duplicateProgress}</span>
+            ) : null}
+          </div>
           <InputWithMic
             language={activeStory.language}
             list="genre-suggestions"

@@ -297,6 +297,8 @@ export const en = {
     loadingModel: 'Loading AI model…',
     preparingTranslation: 'Preparing translation…',
     savingDuplicate: 'Saving duplicated story…',
+    savingTranslation: 'Saving translated story…',
+    translationFailed: 'Translation failed',
   },
   feedback: {
     button: 'Feedback',

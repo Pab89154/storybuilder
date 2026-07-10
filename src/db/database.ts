@@ -819,3 +819,58 @@ export async function insertStoryFromDuplicate(input: {
   if (!details) throw new Error('Failed to create duplicated story')
   return details
 }
+
+export async function applyStoryTranslation(
+  storyId: string,
+  source: StoryWithDetails,
+  translated: {
+    title: string
+    language: Story['language']
+    prompt: string
+    storyBeginning: string
+    storyEnding: string
+    characters: Omit<Character, 'id' | 'storyId'>[]
+    chapters: { sourceId: string; title: string; brief: string }[]
+    paragraphs: { sourceId: string; content: string }[]
+  },
+): Promise<StoryWithDetails> {
+  const now = Date.now()
+
+  await db.transaction('rw', db.stories, db.characters, db.paragraphs, db.chapters, async () => {
+    await db.stories.update(storyId, {
+      title: translated.title,
+      language: translated.language,
+      prompt: translated.prompt,
+      storyBeginning: translated.storyBeginning,
+      storyEnding: translated.storyEnding,
+      updatedAt: now,
+    })
+
+    for (let index = 0; index < source.characters.length; index += 1) {
+      const character = source.characters[index]
+      const updates = translated.characters[index]
+      if (!character || !updates) continue
+      await db.characters.update(character.id, updates)
+    }
+
+    for (const chapter of translated.chapters) {
+      await db.chapters.update(chapter.sourceId, {
+        title: chapter.title,
+        brief: chapter.brief,
+        updatedAt: now,
+      })
+    }
+
+    for (const paragraph of translated.paragraphs) {
+      await db.paragraphs.update(paragraph.sourceId, {
+        content: paragraph.content,
+        updatedAt: now,
+      })
+    }
+  })
+
+  await rebuildStorySearchIndex(storyId)
+  const details = await getStoryWithDetails(storyId)
+  if (!details) throw new Error('Failed to apply story translation')
+  return details
+}

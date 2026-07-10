@@ -297,6 +297,8 @@ export const es = {
     loadingModel: 'Cargando modelo de IA…',
     preparingTranslation: 'Preparando traducción…',
     savingDuplicate: 'Guardando cuento duplicado…',
+    savingTranslation: 'Guardando cuento traducido…',
+    translationFailed: 'Error al traducir',
   },
   feedback: {
     button: 'Comentarios',

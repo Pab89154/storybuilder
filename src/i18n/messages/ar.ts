@@ -295,6 +295,8 @@ export const ar = {
     loadingModel: 'جارٍ تحميل نموذج الذكاء الاصطناعي…',
     preparingTranslation: 'جارٍ تحضير الترجمة…',
     savingDuplicate: 'جارٍ حفظ النسخة…',
+    savingTranslation: 'جارٍ حفظ القصة المترجمة…',
+    translationFailed: 'فشلت الترجمة',
   },
   feedback: {
     button: 'ملاحظات',

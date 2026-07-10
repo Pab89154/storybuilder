@@ -299,6 +299,8 @@ export const fr = {
     loadingModel: 'Chargement du modèle IA…',
     preparingTranslation: 'Préparation de la traduction…',
     savingDuplicate: 'Enregistrement de la copie…',
+    savingTranslation: 'Enregistrement de l’histoire traduite…',
+    translationFailed: 'Échec de la traduction',
   },
   feedback: {
     button: 'Commentaires',

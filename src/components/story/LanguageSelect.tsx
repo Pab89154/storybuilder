@@ -27,6 +27,7 @@ interface LanguageSelectProps {
   className?: string
   triggerClassName?: string
   id?: string
+  disabled?: boolean
 }
 
 export function LanguageSelect({
@@ -35,9 +36,10 @@ export function LanguageSelect({
   className,
   triggerClassName,
   id,
+  disabled,
 }: LanguageSelectProps) {
   return (
-    <Select value={value} onValueChange={(v) => onValueChange(v as Language)}>
+    <Select value={value} onValueChange={(v) => onValueChange(v as Language)} disabled={disabled}>
       <SelectTrigger id={id} className={triggerClassName}>
         <SelectValue>
           <span className="flex items-center gap-2">
