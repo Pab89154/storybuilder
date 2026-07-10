@@ -30,12 +30,22 @@ export function BlindKidModeToggle({
           className,
         )}
         onClick={toggleBlindKidMode}
-        title={label}
+        title={`${label} (${t('blindKid.beta')})`}
         aria-label={label}
         aria-pressed={blindKidMode}
       >
-        <EyeOff className="h-4 w-4" strokeWidth={1.75} />
-        {label}
+        <EyeOff className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+        <span
+          className={cn(
+            'shrink-0 text-[10px] font-normal leading-tight',
+            blindKidMode
+              ? 'text-[var(--color-primary)]/80'
+              : 'text-[var(--color-muted-foreground)]',
+          )}
+        >
+          {t('blindKid.beta')}
+        </span>
       </Button>
     )
   }
@@ -55,7 +65,7 @@ export function BlindKidModeToggle({
         className,
       )}
       onClick={toggleBlindKidMode}
-      title={label}
+      title={`${label} (${t('blindKid.beta')})`}
       aria-label={label}
       aria-pressed={blindKidMode}
     >

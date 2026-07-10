@@ -13,6 +13,7 @@ export const zh = {
   blindKid: {
     enable: '盲人模式',
     disable: '关闭盲人模式',
+    beta: 'Beta — 可能仍有缺陷',
     listen: '朗读',
     pause: '暂停',
     resume: '继续',

@@ -13,6 +13,7 @@ export const ar = {
   blindKid: {
     enable: 'الوضع الأعمى',
     disable: 'إيقاف الوضع الأعمى',
+    beta: 'تجريبي — قد يحتوي على أخطاء',
     listen: 'استمع',
     pause: 'إيقاف مؤقت',
     resume: 'استئناف',

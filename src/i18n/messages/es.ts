@@ -13,6 +13,7 @@ export const es = {
   blindKid: {
     enable: 'Modo ciego',
     disable: 'Desactivar modo ciego',
+    beta: 'Beta — aún puede tener errores',
     listen: 'Escuchar',
     pause: 'Pausar',
     resume: 'Reanudar',
