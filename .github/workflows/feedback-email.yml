@@ -9,11 +9,21 @@ jobs:
     if: contains(github.event.issue.labels.*.name, 'feedback') || startsWith(github.event.issue.title, '[Feedback]')
     runs-on: ubuntu-latest
     steps:
+      - name: Validate SMTP secrets
+        env:
+          SMTP_USER: ${{ secrets.FEEDBACK_SMTP_USER }}
+          SMTP_PASS: ${{ secrets.FEEDBACK_SMTP_PASSWORD }}
+        run: |
+          if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ]; then
+            echo "::error::Missing FEEDBACK_SMTP_USER or FEEDBACK_SMTP_PASSWORD. Add them under Settings → Secrets and variables → Actions (use an iCloud app-specific password)."
+            exit 1
+          fi
+
       - uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.mail.me.com
           server_port: 587
-          secure: true
+          secure: false
           username: ${{ secrets.FEEDBACK_SMTP_USER }}
           password: ${{ secrets.FEEDBACK_SMTP_PASSWORD }}
           from: StoryBuilder Feedback <${{ secrets.FEEDBACK_SMTP_USER }}>
