@@ -17,7 +17,7 @@ import {
 } from '@/lib/cloud/encryptionKeys'
 import { clearGuestData } from '@/lib/guest/database'
 import { setDatabaseAuthMode } from '@/db/database'
-import { supabase } from '@/lib/supabase/client'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase/client'
 
 type AuthContextValue = {
   user: User | null
@@ -67,6 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
+    if (!isSupabaseConfigured) {
+      setIsLoading(false)
+      return
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       setSession(data.session)
@@ -93,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     await ensureEncryptionForPassword(password)
@@ -102,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -132,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestPasswordReset = useCallback(async (email: string) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}reset-password`
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) throw error

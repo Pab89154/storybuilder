@@ -3,9 +3,11 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SharedStoryPage } from '@/pages/SharedStoryPage'
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <Routes>
         <Route path="/" element={<MainLayout />} />
         <Route path="/share/:token" element={<SharedStoryPage />} />

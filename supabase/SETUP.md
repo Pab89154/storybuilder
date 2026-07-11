@@ -28,7 +28,12 @@ Copy `.env.example` to `.env` and set:
 - `VITE_SUPABASE_ANON_KEY`
 - `SERVICE_ROLE_KEY` (local scripts / edge functions only — never in frontend)
 
-For GitHub Pages, add the `VITE_*` variables as repository **Secrets** and inject them in your deploy workflow.
+For GitHub Pages, add these repository **Secrets** (Settings → Secrets and variables → Actions):
+
+- `VITE_SUPABASE_URL` — your project URL
+- `VITE_SUPABASE_ANON_KEY` — your publishable anon key
+
+The deploy workflow (`.github/workflows/deploy-pages.yml`) passes them into `npm run build`.
 
 ## 4. Recovery key email (optional)
 
