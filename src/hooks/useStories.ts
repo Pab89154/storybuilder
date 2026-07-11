@@ -13,6 +13,7 @@ import {
   updateFolder,
   updateStory,
 } from '@/db/database'
+import { useAuth } from '@/context/auth'
 import { ensureStoriesBootstrapped } from '@/lib/storiesBootstrap'
 import { collectGenres, storyMatchesQuery } from '@/lib/search'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
@@ -32,6 +33,7 @@ function filterByFolder<T extends { folderId: string | null }>(
 }
 
 export function useStories() {
+  const { isAuthenticated } = useAuth()
   const {
     stories,
     folders,
@@ -333,6 +335,12 @@ export function useStories() {
   useEffect(() => {
     ensureStoriesBootstrapped(refreshStories)
   }, [refreshStories])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void refreshStories()
+    }
+  }, [isAuthenticated, refreshStories])
 
   const availableGenres = useMemo(() => collectGenres(stories), [stories])
 

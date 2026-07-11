@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  BookOpen,
-  Download,
-  Loader2,
-  Pencil,
-  Sparkles,
-  Square,
-  StepForward,
-} from 'lucide-react'
+import { Loader2, Square, StepForward } from 'lucide-react'
+import { IconBookOpen, IconDownload, IconPencil, IconShare, IconSparkles } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Progress } from '@/components/ui/progress'
@@ -18,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { StorySetupPanel, StorySetupActions } from '@/components/story/StorySetupPanel'
+import { StorySetupPanel, StorySetupActions, RegenerateBookButton } from '@/components/story/StorySetupPanel'
 import { StoryEditBody } from '@/components/story/StoryEditBody'
 import { StoryBookReader } from '@/components/story/StoryBookReader'
 import { getBookProgress, getChapterWordCount } from '@/lib/chapterProgress'
@@ -26,7 +19,9 @@ import { WebGPUWarning } from '@/components/model/WebGPUWarning'
 import { downloadStoryTxt } from '@/lib/export/txt'
 import { LanguageSelect } from '@/components/story/LanguageSelect'
 import { DuplicateStoryDialog } from '@/components/story/DuplicateStoryDialog'
+import { ShareStoryDialog } from '@/components/story/ShareStoryDialog'
 import { WelcomeScreen } from '@/components/layout/WelcomeScreen'
+import { useAuth } from '@/context/auth'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
 import { useStoryLanguage } from '@/hooks/useStoryLanguage'
@@ -76,7 +71,7 @@ function ViewModeToggle({
         )}
         onClick={() => onChange('read')}
       >
-        <BookOpen className="h-4 w-4 shrink-0" />
+        <IconBookOpen className="h-4 w-4 shrink-0" />
         {t('workspace.read')}
       </button>
       <button
@@ -90,7 +85,7 @@ function ViewModeToggle({
         )}
         onClick={() => onChange('edit')}
       >
-        <Pencil className="h-4 w-4 shrink-0" />
+        <IconPencil className="h-4 w-4 shrink-0" />
         {t('workspace.edit')}
       </button>
     </div>
@@ -99,7 +94,8 @@ function ViewModeToggle({
 
 export function StoryWorkspace() {
   const t = useUiT()
-  const { activeStory, saveStoryMeta, folders, moveStory, setBookmark } = useStories()
+  const { isAuthenticated } = useAuth()
+  const { activeStory, saveStoryMeta, folders, moveStory, setBookmark, refreshStories } = useStories()
   const { changeStoryLanguage } = useStoryLanguage()
   const { generate, continueStory, isGenerating, isLoading } = useGeneration()
   const {
@@ -116,6 +112,7 @@ export function StoryWorkspace() {
       ? { paragraphId: streamingParagraphId, content: streamingContent }
       : null
   const [viewMode, setViewMode] = useState<StoryViewMode>('read')
+  const [showShareDialog, setShowShareDialog] = useState(false)
   const openedStoryIdRef = useRef<string | null>(null)
 
   // Only pick a default mode when the user opens a different story — never while generating.
@@ -176,7 +173,7 @@ export function StoryWorkspace() {
       <header className="shrink-0 border-b bg-[var(--color-card)] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <BookOpen
+            <IconBookOpen
               className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
               aria-hidden
             />
@@ -201,7 +198,7 @@ export function StoryWorkspace() {
                   {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <IconSparkles className="h-4 w-4" />
                   )}
                   {t('workspace.generate')}
                 </Button>
@@ -216,6 +213,7 @@ export function StoryWorkspace() {
                   <StepForward className="h-4 w-4" />
                   {t('workspace.continue')}
                 </Button>
+                <RegenerateBookButton story={activeStory} buttonClassName={toolbarItemClass} />
               </>
             ) : null}
             {isChapterBook ? (
@@ -237,6 +235,18 @@ export function StoryWorkspace() {
               disabled={isGenerating || isDuplicating}
               buttonClassName={toolbarItemClass}
             />
+            {isAuthenticated ? (
+              <Button
+                className={toolbarItemClass}
+                variant="outline"
+                onClick={() => setShowShareDialog(true)}
+                disabled={activeStory.paragraphs.length === 0 || isDuplicating}
+                title={t('share.shareStory')}
+              >
+                <IconShare className="h-4 w-4" />
+                {t('share.shareStory')}
+              </Button>
+            ) : null}
             <Button
               className={toolbarItemClass}
               variant="outline"
@@ -251,7 +261,7 @@ export function StoryWorkspace() {
               disabled={activeStory.paragraphs.length === 0 || isDuplicating}
               title={t('workspace.exportTxt')}
             >
-              <Download className="h-4 w-4" />
+              <IconDownload className="h-4 w-4" />
               {t('workspace.export')}
             </Button>
           </div>
@@ -387,6 +397,14 @@ export function StoryWorkspace() {
           </div>
         </div>
       )}
+      {isAuthenticated && activeStory ? (
+        <ShareStoryDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          story={activeStory}
+          onShared={() => void refreshStories()}
+        />
+      ) : null}
     </div>
   )
 }

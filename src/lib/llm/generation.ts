@@ -20,7 +20,7 @@ import {
   buildRegeneratePrompt,
   buildSystemPrompt,
 } from '@/lib/llm/prompts'
-import { streamCompletion } from '@/lib/llm/engine'
+import { streamStoryCompletion } from '@/lib/llm/engine'
 import { generationTemperature } from '@/lib/llm/temperature'
 import {
   CHUNK_WORD_TARGET,
@@ -35,6 +35,8 @@ export interface GenerationCallbacks {
   onParagraphComplete: (paragraph: Paragraph) => void
   onProgress: (words: number, target: number) => void
   onChunkLimitReached?: () => void
+  /** Clears streamed text on screen when a refusal is discarded and retried. */
+  onResetStream?: (paragraphId: string | null) => void
   signal?: AbortSignal
 }
 
@@ -85,16 +87,23 @@ export async function generateStoryFromScratch(
     callbacks.onParagraphStart(paragraph)
 
     try {
-      const chunkText = await streamCompletion(
+      const chunkText = await streamStoryCompletion(
         engine,
         buildSystemPrompt(story.language, story.readerAge),
         userPrompt,
-        (token) => {
-          streamingContent += token
-          callbacks.onToken(token, paragraph.id)
+        {
+          language: story.language,
+          onToken: (token) => {
+            streamingContent += token
+            callbacks.onToken(token, paragraph.id)
+          },
+          onResetStream: () => {
+            streamingContent = ''
+            callbacks.onResetStream?.(paragraph.id)
+          },
+          signal: callbacks.signal,
+          temperature: generationTemperature(story.language),
         },
-        callbacks.signal,
-        generationTemperature(story.language),
       )
 
       const finalContent = chunkText || streamingContent
@@ -167,16 +176,23 @@ export async function continueStory(
   callbacks.onParagraphStart(paragraph)
 
   try {
-    const chunkText = await streamCompletion(
+    const chunkText = await streamStoryCompletion(
       engine,
       buildSystemPrompt(story.language, story.readerAge),
       userPrompt,
-      (token) => {
-        streamingContent += token
-        callbacks.onToken(token, paragraph.id)
+      {
+        language: story.language,
+        onToken: (token) => {
+          streamingContent += token
+          callbacks.onToken(token, paragraph.id)
+        },
+        onResetStream: () => {
+          streamingContent = ''
+          callbacks.onResetStream?.(paragraph.id)
+        },
+        signal: callbacks.signal,
+        temperature: generationTemperature(story.language),
       },
-      callbacks.signal,
-      generationTemperature(story.language),
     )
 
     const finalContent = chunkText || streamingContent
@@ -229,16 +245,23 @@ export async function regenerateParagraph(
   let streamingContent = ''
   callbacks.onParagraphStart(target)
 
-  const chunkText = await streamCompletion(
+  const chunkText = await streamStoryCompletion(
     engine,
     buildSystemPrompt(story.language, story.readerAge),
     userPrompt,
-    (token) => {
-      streamingContent += token
-      callbacks.onToken(token, target.id)
+    {
+      language: story.language,
+      onToken: (token) => {
+        streamingContent += token
+        callbacks.onToken(token, target.id)
+      },
+      onResetStream: () => {
+        streamingContent = ''
+        callbacks.onResetStream?.(target.id)
+      },
+      signal: callbacks.signal,
+      temperature: generationTemperature(story.language),
     },
-    callbacks.signal,
-    generationTemperature(story.language),
   )
 
   const finalContent = (chunkText || streamingContent).trim()

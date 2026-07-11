@@ -5,12 +5,24 @@ import {
   Flag,
   Loader2,
   Plus,
+  RotateCcw,
   Sparkles,
   Square,
   StepForward,
   Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { Input } from '@/components/ui/input'
 import { InputWithMic } from '@/components/ui/input-with-mic'
@@ -417,6 +429,57 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
   )
 }
 
+export function RegenerateBookButton({
+  story,
+  className,
+  buttonClassName,
+}: {
+  story: StoryWithDetails
+  className?: string
+  buttonClassName?: string
+}) {
+  const t = useUiT()
+  const [open, setOpen] = useState(false)
+  const { regenerateBook, isGenerating, isLoading } = useGeneration()
+  const hasContent = story.paragraphs.length > 0 || story.isBookFinished
+
+  if (!hasContent) return null
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          className={buttonClassName ?? className}
+          size={buttonClassName ? undefined : 'sm'}
+          variant="outline"
+          disabled={isGenerating || isLoading}
+          title={t('setup.regenerateBookHint')}
+        >
+          <RotateCcw className="h-4 w-4" />
+          {t('setup.regenerateBook')}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('setup.regenerateBookTitle')}</AlertDialogTitle>
+          <AlertDialogDescription>{t('setup.regenerateBookDescription')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('sidebar.cancel')}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              setOpen(false)
+              void regenerateBook()
+            }}
+          >
+            {t('setup.regenerateBookConfirm')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 export function StorySetupActions({
   story,
   advancedBrief = '',
@@ -526,6 +589,11 @@ export function StorySetupActions({
           {t('setup.finishBook')}
         </Button>
       ) : null}
+
+      <RegenerateBookButton
+        story={story}
+        buttonClassName={buttonClassName}
+      />
 
       {isGenerating ? (
         <Button

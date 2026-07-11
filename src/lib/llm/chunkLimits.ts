@@ -1,5 +1,6 @@
 import { deleteParagraph, replaceParagraphContent } from '@/db/database'
 import type { Paragraph } from '@/types/story'
+import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
 
 export const MAX_GENERATION_CHUNKS = 100
 
@@ -20,8 +21,9 @@ export async function finalizeGeneratedParagraph(
   finalContent: string,
   source: Paragraph['source'] = 'ai',
 ): Promise<Paragraph | null> {
-  const trimmed = finalContent.trim()
-  if (!trimmed) {
+  // Final safety net: never persist a model refusal as story text.
+  const trimmed = stripRefusal(finalContent)
+  if (!trimmed || looksLikeRefusal(trimmed)) {
     await deleteParagraph(paragraph.id)
     return null
   }

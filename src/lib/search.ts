@@ -14,6 +14,7 @@ export function buildSearchText(
     story.storyEnding,
     ...characters.map((c) => c.name),
     ...characters.map((c) => c.nickname ?? ''),
+    ...characters.map((c) => c.description ?? ''),
     ...characters.map((c) => c.species ?? ''),
     ...characters.map((c) => c.superpowerDescription ?? ''),
     ...characters.map((c) => c.petName ?? ''),

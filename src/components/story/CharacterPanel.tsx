@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputWithMic } from '@/components/ui/input-with-mic'
+import { TextareaWithMic } from '@/components/ui/textarea-with-mic'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -52,6 +53,7 @@ function CharacterFieldRow({
 const emptyCharacter = {
   name: '',
   nickname: '',
+  description: '',
   alignment: 'good' as CharacterAlignment,
   gender: 'boy' as CharacterGender,
   age: 10,
@@ -108,6 +110,8 @@ function formatCharacterDetailSummary(character: Character, t: (key: string) => 
     )
     parts.push(vehicleTypes)
   }
+  const appearance = character.description?.trim()
+  if (appearance) parts.push(appearance)
   return parts.join(' · ')
 }
 
@@ -207,6 +211,20 @@ function CharacterCard({
               value={character.nickname ?? ''}
               onChange={(e) => void onUpdate({ nickname: e.target.value })}
               placeholder={t('characters.nicknamePlaceholder')}
+            />
+          </CharacterFieldRow>
+          <CharacterFieldRow
+            label={t('characters.description')}
+            compact={compact}
+            className="items-start"
+          >
+            <TextareaWithMic
+              language={language}
+              className={cn('min-h-[4.5rem] w-full resize-y text-sm', compact && 'min-h-[3.5rem] text-xs')}
+              value={character.description ?? ''}
+              onChange={(e) => void onUpdate({ description: e.target.value })}
+              placeholder={t('characters.descriptionPlaceholder')}
+              rows={compact ? 2 : 3}
             />
           </CharacterFieldRow>
           <CharacterFieldRow label={t('characters.alignment')} compact={compact}>

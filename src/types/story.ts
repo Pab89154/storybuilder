@@ -17,6 +17,7 @@ export interface Character {
   storyId: string
   name: string
   nickname?: string
+  description?: string
   alignment: CharacterAlignment
   gender: CharacterGender
   age: number
@@ -82,6 +83,10 @@ export interface Story {
   isBookFinished: boolean
   createdAt: number
   updatedAt: number
+  /** True when an active public share link exists (authenticated users only). */
+  isShared?: boolean
+  /** Ephemeral guest session — not persisted to cloud. */
+  isGuest?: boolean
 }
 
 export interface StoryWithDetails extends Story {

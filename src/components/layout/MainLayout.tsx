@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { UnlockEncryptionDialog } from '@/components/auth/UnlockEncryptionDialog'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { StoryWorkspace } from '@/components/layout/StoryWorkspace'
 import { useUiT } from '@/i18n/context'
@@ -19,6 +20,7 @@ export function MainLayout() {
 
   return (
     <>
+      <UnlockEncryptionDialog />
       <div className="flex h-full min-h-0 overflow-hidden">
         <button
           type="button"

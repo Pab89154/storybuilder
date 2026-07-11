@@ -2,7 +2,10 @@ import type { InitProgressReport, MLCEngine } from '@mlc-ai/web-llm'
 import { buildMlcAppConfig } from '@/lib/models/mlcAppConfig'
 import {
   PRIMARY_MODEL_ID,
+  type Language,
 } from '@/types/story'
+import { buildAntiRefusalReminder } from '@/lib/llm/promptLocale'
+import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
 
 export type ModelTier = 'primary' | 'fallback'
 
@@ -123,13 +126,14 @@ export async function completeText(
   systemPrompt: string,
   userPrompt: string,
   maxTokens = 1024,
+  temperature = 0.3,
 ): Promise<string> {
   const response = await engine.chat.completions.create({
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
-    temperature: 0.3,
+    temperature,
     max_tokens: maxTokens,
     stream: false,
   })
@@ -203,6 +207,61 @@ export async function streamCompletion(
   } finally {
     unbindAbort?.()
   }
+}
+
+/**
+ * Streams a story chunk while guarding against spurious model refusals.
+ *
+ * Small local models occasionally answer a harmless story prompt with a
+ * refusal ("I'm sorry, but I can't…"). When that happens we clear the streamed
+ * text, escalate the system prompt with a blunt anti-refusal reminder, nudge
+ * the temperature up, and retry. If every attempt still refuses, the best
+ * salvageable (refusal-stripped) text is returned so the caller can drop it.
+ */
+export async function streamStoryCompletion(
+  engine: MLCEngine,
+  systemPrompt: string,
+  userPrompt: string,
+  options: {
+    language: Language
+    onToken: (token: string) => void
+    onResetStream?: () => void
+    signal?: AbortSignal
+    temperature?: number
+    maxAttempts?: number
+  },
+): Promise<string> {
+  const baseTemperature = options.temperature ?? 0.8
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 3)
+  let salvaged = ''
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (options.signal?.aborted) break
+    if (attempt > 0) options.onResetStream?.()
+
+    const attemptSystemPrompt =
+      attempt === 0
+        ? systemPrompt
+        : `${systemPrompt}\n\n${buildAntiRefusalReminder(options.language)}`
+    const attemptTemperature = Math.min(baseTemperature + attempt * 0.15, 1.3)
+
+    const text = await streamCompletion(
+      engine,
+      attemptSystemPrompt,
+      userPrompt,
+      options.onToken,
+      options.signal,
+      attemptTemperature,
+    )
+
+    const cleaned = stripRefusal(text)
+    if (cleaned && !looksLikeRefusal(cleaned)) {
+      return cleaned
+    }
+    salvaged = cleaned
+  }
+
+  return salvaged
 }
 
 export async function unloadEngine(): Promise<void> {

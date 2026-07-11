@@ -17,6 +17,7 @@ function storyHasTranslatableContent(story: StoryWithDetails): boolean {
   return story.characters.some((character) => {
     return Boolean(
       character.nickname?.trim() ||
+        character.description?.trim() ||
         character.superpowerDescription?.trim() ||
         character.petSuperpowerDescription?.trim() ||
         character.petSpecies?.trim() ||

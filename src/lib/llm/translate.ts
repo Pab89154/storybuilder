@@ -1,6 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm'
 import { completeText } from '@/lib/llm/engine'
-import { buildTranslationSystemPrompt } from '@/lib/llm/promptLocale'
+import { buildAntiRefusalReminder, buildTranslationSystemPrompt } from '@/lib/llm/promptLocale'
+import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
 import { joinCharacterList, splitCharacterList } from '@/lib/characterFields'
 import { LANGUAGE_ENGLISH_NAMES, untitledStoryTitle } from '@/lib/storyLanguageMeta'
 import type { Character, Language, StoryWithDetails } from '@/types/story'
@@ -18,7 +19,29 @@ async function translateText(
     ? `Context: ${context}\n\nTranslate this text to ${LANGUAGE_ENGLISH_NAMES[targetLanguage]}:\n\n${trimmed}`
     : `Translate this text to ${LANGUAGE_ENGLISH_NAMES[targetLanguage]}:\n\n${trimmed}`
 
-  return completeText(engine, buildTranslationSystemPrompt(targetLanguage), userPrompt, 1024)
+  const baseSystemPrompt = buildTranslationSystemPrompt(targetLanguage)
+  const maxAttempts = 3
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const systemPrompt =
+      attempt === 0
+        ? baseSystemPrompt
+        : `${baseSystemPrompt}\n\n${buildAntiRefusalReminder(targetLanguage)}`
+    const result = await completeText(
+      engine,
+      systemPrompt,
+      userPrompt,
+      1024,
+      0.3 + attempt * 0.15,
+    )
+    const cleaned = stripRefusal(result)
+    if (cleaned && !looksLikeRefusal(cleaned)) {
+      return cleaned
+    }
+  }
+
+  // Every attempt refused: keep the original text rather than storing a refusal.
+  return trimmed
 }
 
 async function translateCharacterListField(
@@ -85,6 +108,15 @@ async function translateCharacterFields(
       char.nickname,
       targetLanguage,
       `Nickname for character ${characterLabel}`,
+    )
+  }
+  let description = char.description
+  if (char.description?.trim()) {
+    description = await translateText(
+      engine,
+      char.description,
+      targetLanguage,
+      `Physical appearance description for character ${characterLabel}`,
     )
   }
   let superpowerDescription = char.superpowerDescription
@@ -162,6 +194,7 @@ async function translateCharacterFields(
   return {
     name: char.name,
     nickname,
+    description,
     alignment: char.alignment,
     gender: char.gender,
     age: char.age,
@@ -185,6 +218,7 @@ function copyCharacterFields(char: Character): Omit<Character, 'id' | 'storyId'>
   return {
     name: char.name,
     nickname: char.nickname,
+    description: char.description,
     alignment: char.alignment,
     gender: char.gender,
     age: char.age,

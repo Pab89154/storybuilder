@@ -17,7 +17,7 @@ import {
   untitledStoryTitle,
 } from '@/lib/storyLanguageMeta'
 import { finalizeGeneratedParagraph, MAX_GENERATION_CHUNKS, shouldStopGenerationLoop } from '@/lib/llm/chunkLimits'
-import { streamCompletion } from '@/lib/llm/engine'
+import { streamStoryCompletion } from '@/lib/llm/engine'
 import { generationTemperature } from '@/lib/llm/temperature'
 import { useStoryStore } from '@/store/storyStore'
 import {
@@ -68,7 +68,7 @@ async function createChapterOutline(
   const chapterCount = clampPlannedChapterCount(story.plannedChapterCount)
   const wordsPerChapter = clampChapterWordTarget(story.chapterWordTarget)
 
-  const outlineText = await streamCompletion(
+  const outlineText = await streamStoryCompletion(
     engine,
     buildSystemPrompt(story.language, story.readerAge),
     buildChapterOutlinePrompt({
@@ -78,9 +78,12 @@ async function createChapterOutline(
       chapterCount,
       wordsPerChapter,
     }),
-    () => {},
-    callbacks.signal,
-    generationTemperature(story.language),
+    {
+      language: story.language,
+      onToken: () => {},
+      signal: callbacks.signal,
+      temperature: generationTemperature(story.language),
+    },
   )
 
   let outline = parseChapterOutline(outlineText)
@@ -175,16 +178,23 @@ async function generateChapterContent(
     callbacks.onParagraphStart(paragraph)
 
     try {
-      const chunkText = await streamCompletion(
+      const chunkText = await streamStoryCompletion(
         engine,
         buildSystemPrompt(story.language, story.readerAge),
         userPrompt,
-        (token) => {
-          streamingContent += token
-          callbacks.onToken(token, paragraph.id)
+        {
+          language: story.language,
+          onToken: (token) => {
+            streamingContent += token
+            callbacks.onToken(token, paragraph.id)
+          },
+          onResetStream: () => {
+            streamingContent = ''
+            callbacks.onResetStream?.(paragraph.id)
+          },
+          signal: callbacks.signal,
+          temperature: generationTemperature(story.language),
         },
-        callbacks.signal,
-        generationTemperature(story.language),
       )
 
       const finalContent = chunkText || streamingContent

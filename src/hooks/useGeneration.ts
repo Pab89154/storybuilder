@@ -11,6 +11,7 @@ import {
   generateOrContinueAutomaticBook,
   continueAdvancedBook,
 } from '@/lib/llm/chapterGeneration'
+import { resetBookForRegeneration } from '@/db/database'
 import { useStoryStore } from '@/store/storyStore'
 import { countParagraphsWords } from '@/lib/wordCount'
 import { useStories } from '@/hooks/useStories'
@@ -132,6 +133,10 @@ function buildCallbacksForRun(storyId: string, runId: number, signal?: AbortSign
       if (isStale()) return
       useStoryStore.getState().upsertParagraph(paragraph)
       useStoryStore.getState().setStreaming(null, '')
+    },
+    onResetStream: (paragraphId: string | null) => {
+      if (isStale()) return
+      useStoryStore.getState().setStreaming(paragraphId, '')
     },
     onProgress: (_words: number, target: number) => {
       void target
@@ -460,6 +465,55 @@ export function useGeneration() {
     [ensureEngine, finishGenerationRun, setGenerating, setGenerationError, t],
   )
 
+  const regenerateBook = useCallback(async () => {
+    const story = useStoryStore.getState().activeStory
+    if (!story || useStoryStore.getState().isGenerating) return
+    if (story.paragraphs.length === 0 && !story.isBookFinished) return
+
+    const storyId = story.id
+    const isAutomatic = story.creationMode === 'automatic'
+    const isAdvanced = story.creationMode === 'advanced'
+
+    if (story.creationMode === 'legacy' && !story.prompt.trim()) {
+      setGenerationError(t('errors.promptRequired'))
+      return
+    }
+
+    try {
+      await resetBookForRegeneration(storyId, { clearChapters: isAutomatic })
+      const {
+        updateActiveParagraphs,
+        updateActiveChapters,
+        updateActiveStoryMeta,
+      } = useStoryStore.getState()
+      updateActiveParagraphs([])
+      updateActiveStoryMeta({ isBookFinished: false, bookmarkPageIndex: null })
+      if (isAutomatic) {
+        updateActiveChapters([])
+      }
+      await refreshStories()
+      await loadStory(storyId, { onlyIfStillActive: true })
+
+      if (isAutomatic) {
+        await generateAutomatic()
+      } else if (isAdvanced) {
+        await continueAdvanced()
+      } else {
+        await generate()
+      }
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
+    }
+  }, [
+    continueAdvanced,
+    generate,
+    generateAutomatic,
+    loadStory,
+    refreshStories,
+    setGenerationError,
+    t,
+  ])
+
   const cancel = useCallback(() => {
     cancelActiveGeneration()
   }, [])
@@ -486,6 +540,7 @@ export function useGeneration() {
     requestFinishBook,
     continueStory: continueStoryAction,
     regenerate,
+    regenerateBook,
     cancel,
   }
 }

@@ -1,5 +1,6 @@
 import { useState, type HTMLAttributes } from 'react'
-import { Book, BookOpen, FolderInput, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { FolderInput, GripVertical } from 'lucide-react'
+import { IconBook, IconBookOpen, IconPencil, IconShare, IconTrash } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -127,12 +128,12 @@ export function StoryListItem({
             >
               <div className="flex min-w-0 items-center gap-1.5">
                 {isActive ? (
-                  <BookOpen
+                  <IconBookOpen
                     className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
                     aria-hidden
                   />
                 ) : (
-                  <Book
+                  <IconBook
                     className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
                     aria-hidden
                   />
@@ -145,6 +146,12 @@ export function StoryListItem({
                   {languageFlag(story.language)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{story.title}</span>
+                {story.isShared ? (
+                  <IconShare
+                    className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
+                    aria-label={t('share.sharedBadge')}
+                  />
+                ) : null}
               </div>
               <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]" title={metadata}>
                 {metadata}
@@ -165,7 +172,7 @@ export function StoryListItem({
               setIsRenaming(true)
             }}
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <IconPencil className="h-3.5 w-3.5" />
           </Button>
 
           <AlertDialog>
@@ -177,7 +184,7 @@ export function StoryListItem({
                 onClick={(e) => e.stopPropagation()}
                 aria-label={t('storyList.deleteTitle')}
               >
-                <Trash2 className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
+                <IconTrash className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

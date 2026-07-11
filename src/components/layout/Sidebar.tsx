@@ -1,19 +1,8 @@
 import { useEffect, useState } from 'react'
-import {
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  Library,
-  MessageSquare,
-  PanelLeft,
-  PanelLeftClose,
-  Pencil,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-} from 'lucide-react'
+import { ChevronDown, ChevronRight, FolderPlus, Library, MessageSquare, PanelLeft, PanelLeftClose, SlidersHorizontal } from 'lucide-react'
+import { AuthDialog } from '@/components/auth/AuthDialog'
+import { GuestRegisterPrompt } from '@/components/auth/GuestRegisterPrompt'
+import { IconBookOpen, IconLogOut, IconPencil, IconPlus, IconSearch, IconTrash, IconUser } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,6 +32,7 @@ import { FeedbackDialog } from '@/components/layout/FeedbackDialog'
 import { NewStoryDialog } from '@/components/story/NewStoryDialog'
 import { LanguageFilterSelect } from '@/components/story/LanguageSelect'
 import { useUiT } from '@/i18n/context'
+import { useAuth } from '@/context/auth'
 import { cancelGenerationIfActive } from '@/hooks/useGeneration'
 import { useStories } from '@/hooks/useStories'
 import { UNCATEGORIZED_KEY } from '@/lib/folderContainers'
@@ -57,6 +47,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const t = useUiT()
+  const { isAuthenticated, signOut } = useAuth()
   const {
     stories,
     storiesByFolder,
@@ -94,6 +85,9 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const [newFolderName, setNewFolderName] = useState('')
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [showNewStory, setShowNewStory] = useState(false)
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const [authDialogMode, setAuthDialogMode] = useState<'signIn' | 'signUp' | 'forgot'>('signUp')
   const [showFeedback, setShowFeedback] = useState(false)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({})
@@ -225,6 +219,14 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     return []
   })()
 
+  const openNewStoryFlow = () => {
+    if (!isAuthenticated) {
+      setShowGuestPrompt(true)
+      return
+    }
+    setShowNewStory(true)
+  }
+
   const newStoryDialog = (
     <NewStoryDialog
       open={showNewStory}
@@ -233,6 +235,26 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         void createNewStory(language, readerAge)
       }}
     />
+  )
+
+  const guestPrompt = (
+    <GuestRegisterPrompt
+      open={showGuestPrompt}
+      onOpenChange={setShowGuestPrompt}
+      onContinueGuest={() => {
+        setShowGuestPrompt(false)
+        setShowNewStory(true)
+      }}
+      onRegister={() => {
+        setShowGuestPrompt(false)
+        setAuthDialogMode('signUp')
+        setShowAuthDialog(true)
+      }}
+    />
+  )
+
+  const authDialog = (
+    <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} initialMode={authDialogMode} />
   )
 
   const feedbackDialog = (
@@ -265,11 +287,11 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         variant="ghost"
         size="icon"
         className="h-9 w-9 text-[var(--color-primary)] hover:text-[var(--color-primary)]"
-        onClick={() => setShowNewStory(true)}
+        onClick={openNewStoryFlow}
         title={t('sidebar.newStory')}
         aria-label={t('sidebar.newStory')}
       >
-        <Plus className="h-5 w-5" />
+        <IconPlus className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
@@ -317,7 +339,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         >
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
-          <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+          <IconBookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
           <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight">
             {t('app.name')}
           </h1>
@@ -334,12 +356,12 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button className="w-full" onClick={() => setShowNewStory(true)}>
-            <Plus className="h-4 w-4" />
+          <Button className="w-full" onClick={openNewStoryFlow}>
+            <IconPlus className="h-4 w-4" />
             {t('sidebar.newStory')}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setShowNewFolder(true)}>
-            <Plus className="h-4 w-4" />
+            <IconPlus className="h-4 w-4" />
             <Library className="h-4 w-4" />
             {t('sidebar.collection')}
           </Button>
@@ -363,6 +385,27 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         </Button>
         <BlindKidModeToggle variant="menu" />
 
+        <div className="mt-3 border-t pt-3">
+          {isAuthenticated ? (
+            <Button variant="outline" className="w-full" onClick={() => void signOut()}>
+              <IconLogOut className="h-4 w-4" />
+              {t('auth.signOut')}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setAuthDialogMode('signIn')
+                setShowAuthDialog(true)
+              }}
+            >
+              <IconUser className="h-4 w-4" />
+              {t('auth.signIn')}
+            </Button>
+          )}
+        </div>
+
         {showNewFolder && (
           <div className="mt-3 flex gap-2">
             <Input
@@ -382,7 +425,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         )}
 
         <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
           <Input
             className="pl-9"
             placeholder={t('sidebar.searchPlaceholder')}
@@ -502,6 +545,8 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       </ScrollArea>
         </div>
     </aside>
+    {guestPrompt}
+    {authDialog}
     {newStoryDialog}
     {feedbackDialog}
     </>
@@ -559,7 +604,7 @@ function CollectionHeader({
             )}
           </button>
         )}
-        <BookOpen
+        <IconBookOpen
           className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]"
           aria-hidden
         />
@@ -649,7 +694,7 @@ function CollectionHeader({
               onStartEdit()
             }}
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <IconPencil className="h-3.5 w-3.5" />
           </Button>
 
           <AlertDialog>
@@ -661,7 +706,7 @@ function CollectionHeader({
                 title={t('sidebar.deleteCollection')}
                 onClick={(e) => e.stopPropagation()}
               >
-                <Trash2 className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
+                <IconTrash className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
