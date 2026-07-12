@@ -1,6 +1,6 @@
 import { useState, type HTMLAttributes } from 'react'
-import { FolderInput, GripVertical } from 'lucide-react'
-import { IconBook, IconBookOpen, IconPencil, IconShare, IconTrash } from '@/components/icons/AppIcons'
+import { Book, BookOpen, FolderInput, GripVertical } from 'lucide-react'
+import { IconPencil, IconShare, IconTrash } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -128,12 +128,12 @@ export function StoryListItem({
             >
               <div className="flex min-w-0 items-center gap-1.5">
                 {isActive ? (
-                  <IconBookOpen
+                  <BookOpen
                     className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
                     aria-hidden
                   />
                 ) : (
-                  <IconBook
+                  <Book
                     className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
                     aria-hidden
                   />

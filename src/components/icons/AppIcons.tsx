@@ -44,24 +44,6 @@ export function IconShareLink({ className, ...props }: IconProps) {
   )
 }
 
-export function IconBook({ className, ...props }: IconProps) {
-  return (
-    <BaseIcon className={className} {...props}>
-      <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v18H7.5A2.5 2.5 0 0 0 5 23.5Z" />
-      <path d="M7.5 3A2.5 2.5 0 0 0 5 5.5V21" />
-    </BaseIcon>
-  )
-}
-
-export function IconBookOpen({ className, ...props }: IconProps) {
-  return (
-    <BaseIcon className={className} {...props}>
-      <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H12v16H5.5A2.5 2.5 0 0 0 3 17.5Z" />
-      <path d="M12 4h6.5A2.5 2.5 0 0 1 21 6.5V17.5A2.5 2.5 0 0 0 18.5 20H12" />
-    </BaseIcon>
-  )
-}
-
 export function IconPencil({ className, ...props }: IconProps) {
   return (
     <BaseIcon className={className} {...props}>

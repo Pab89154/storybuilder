@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, FolderPlus, Library, MessageSquare, PanelLeft, PanelLeftClose, SlidersHorizontal } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, FolderPlus, Library, MessageSquare, PanelLeft, PanelLeftClose, SlidersHorizontal } from 'lucide-react'
 import { AuthDialog } from '@/components/auth/AuthDialog'
 import { GuestRegisterPrompt } from '@/components/auth/GuestRegisterPrompt'
-import { IconBookOpen, IconLogOut, IconPencil, IconPlus, IconSearch, IconTrash, IconUser } from '@/components/icons/AppIcons'
+import { IconLogOut, IconPencil, IconPlus, IconSearch, IconTrash, IconUser } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -339,7 +339,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         >
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
-          <IconBookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+          <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
           <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight">
             {t('app.name')}
           </h1>
@@ -604,7 +604,7 @@ function CollectionHeader({
             )}
           </button>
         )}
-        <IconBookOpen
+        <BookOpen
           className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]"
           aria-hidden
         />

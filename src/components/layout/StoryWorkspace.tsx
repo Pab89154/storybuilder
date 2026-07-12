@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Square, StepForward } from 'lucide-react'
-import { IconBookOpen, IconDownload, IconPencil, IconShare, IconSparkles } from '@/components/icons/AppIcons'
+import { BookOpen, Loader2, Square, StepForward } from 'lucide-react'
+import { IconDownload, IconPencil, IconShare, IconSparkles } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Progress } from '@/components/ui/progress'
@@ -71,7 +71,7 @@ function ViewModeToggle({
         )}
         onClick={() => onChange('read')}
       >
-        <IconBookOpen className="h-4 w-4 shrink-0" />
+        <BookOpen className="h-4 w-4 shrink-0" />
         {t('workspace.read')}
       </button>
       <button
@@ -173,7 +173,7 @@ export function StoryWorkspace() {
       <header className="shrink-0 border-b bg-[var(--color-card)] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <IconBookOpen
+            <BookOpen
               className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
               aria-hidden
             />

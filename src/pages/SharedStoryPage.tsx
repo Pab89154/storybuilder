@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { BookOpen } from 'lucide-react'
 import { StoryBookReader } from '@/components/story/StoryBookReader'
 import { Button } from '@/components/ui/button'
-import { IconBookOpen, IconPencil } from '@/components/icons/AppIcons'
+import { IconPencil } from '@/components/icons/AppIcons'
 import { useUiT } from '@/i18n/context'
 import { loadSharedStory, readShareSecretFromHash, saveSharedStory } from '@/lib/cloud/sharing'
 import type { ShareAccessMode } from '@/types/share'
@@ -82,7 +83,7 @@ export function SharedStoryPage() {
             )}
             onClick={() => setViewMode('read')}
           >
-            <IconBookOpen className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
             {t('workspace.read')}
           </button>
           {accessMode === 'edit' ? (
