@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/auth'
 import { useUiT } from '@/i18n/context'
+import { getErrorMessage } from '@/lib/utils'
 
 export function ResetPasswordPage() {
   const t = useUiT()
@@ -26,7 +27,7 @@ export function ResetPasswordPage() {
       await completePasswordReset(password, recoveryKey.trim())
       setMessage(t('auth.resetComplete'))
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t('auth.genericError'))
+      setError(getErrorMessage(submitError, t('auth.genericError')))
     } finally {
       setIsSubmitting(false)
     }

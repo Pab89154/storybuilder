@@ -30,7 +30,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   completePasswordReset: (password: string, recoveryKey: string) => Promise<void>
-  unlockEncryption: (password: string) => Promise<void>
+  unlockEncryption: (password: string) => Promise<{ recoveryKey?: string }>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -154,9 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const unlockEncryption = useCallback(async (password: string) => {
-    await ensureEncryptionForPassword(password)
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
+    const result = await ensureEncryptionForPassword(password)
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
+    return result
   }, [])
 
   const value = useMemo<AuthContextValue>(

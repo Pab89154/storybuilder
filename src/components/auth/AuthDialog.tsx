@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/context/auth'
 import { useUiT } from '@/i18n/context'
+import { getErrorMessage } from '@/lib/utils'
 
 type AuthMode = 'signIn' | 'signUp' | 'forgot'
 
@@ -76,7 +77,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = 'signIn' }: AuthD
       await signIn(email.trim(), password)
       handleOpenChange(false)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t('auth.genericError'))
+      setError(getErrorMessage(submitError, t('auth.genericError')))
     } finally {
       setIsSubmitting(false)
     }

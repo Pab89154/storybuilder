@@ -11,6 +11,19 @@ export function generateId(): string {
   return crypto.randomUUID()
 }
 
+/** Extracts a human-readable message from Errors, Supabase errors, or unknown throwables. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error) return error
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    const parts = [record.message, record.details, record.hint]
+      .filter((part): part is string => typeof part === 'string' && part.length > 0)
+    if (parts.length > 0) return parts.join(' — ')
+  }
+  return fallback
+}
+
 export function truncateTitle(text: string, maxLength = 48): string {
   const cleaned = text.trim().replace(/\s+/g, ' ')
   if (cleaned.length <= maxLength) return cleaned || 'Untitled story'

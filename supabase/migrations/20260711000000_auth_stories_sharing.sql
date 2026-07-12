@@ -94,3 +94,16 @@ CREATE POLICY story_shares_public_select ON public.story_shares FOR SELECT USING
 DROP POLICY IF EXISTS story_shares_public_update ON public.story_shares;
 CREATE POLICY story_shares_public_update ON public.story_shares
   FOR UPDATE USING (is_revoked = false AND access_mode = 'edit');
+
+-- Table privileges for the PostgREST API roles. RLS still restricts row access,
+-- but the roles must first hold base table privileges or every query fails with
+-- "permission denied for table".
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.folders TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.stories TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.user_encryption_keys TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.story_shares TO authenticated;
+
+-- Anonymous visitors open public share links (read, and edit when allowed).
+GRANT SELECT, UPDATE ON public.story_shares TO anon;
