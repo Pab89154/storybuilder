@@ -1,6 +1,5 @@
 import { useState, type HTMLAttributes } from 'react'
-import { Book, BookOpen, FolderInput, GripVertical } from 'lucide-react'
-import { IconPencil, IconShare, IconTrash } from '@/components/icons/AppIcons'
+import { Book, BookOpen, FolderInput, GripVertical, Pencil, Share2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -147,7 +146,7 @@ export function StoryListItem({
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{story.title}</span>
                 {story.isShared ? (
-                  <IconShare
+                  <Share2
                     className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]"
                     aria-label={t('share.sharedBadge')}
                   />
@@ -172,7 +171,7 @@ export function StoryListItem({
               setIsRenaming(true)
             }}
           >
-            <IconPencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
 
           <AlertDialog>
@@ -184,7 +183,7 @@ export function StoryListItem({
                 onClick={(e) => e.stopPropagation()}
                 aria-label={t('storyList.deleteTitle')}
               >
-                <IconTrash className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
+                <Trash2 className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Loader2, Square, StepForward } from 'lucide-react'
-import { IconDownload, IconPencil, IconShare, IconSparkles } from '@/components/icons/AppIcons'
+import { BookOpen, Download, Loader2, Pencil, Share2, Sparkles, Square, StepForward } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Progress } from '@/components/ui/progress'
@@ -85,7 +84,7 @@ function ViewModeToggle({
         )}
         onClick={() => onChange('edit')}
       >
-        <IconPencil className="h-4 w-4 shrink-0" />
+        <Pencil className="h-4 w-4 shrink-0" />
         {t('workspace.edit')}
       </button>
     </div>
@@ -198,7 +197,7 @@ export function StoryWorkspace() {
                   {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <IconSparkles className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                   )}
                   {t('workspace.generate')}
                 </Button>
@@ -243,7 +242,7 @@ export function StoryWorkspace() {
                 disabled={activeStory.paragraphs.length === 0 || isDuplicating}
                 title={t('share.shareStory')}
               >
-                <IconShare className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
                 {t('share.shareStory')}
               </Button>
             ) : null}
@@ -261,7 +260,7 @@ export function StoryWorkspace() {
               disabled={activeStory.paragraphs.length === 0 || isDuplicating}
               title={t('workspace.exportTxt')}
             >
-              <IconDownload className="h-4 w-4" />
+              <Download className="h-4 w-4" />
               {t('workspace.export')}
             </Button>
           </div>

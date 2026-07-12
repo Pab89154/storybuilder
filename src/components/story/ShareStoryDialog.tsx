@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { IconCopy, IconRevoke, IconShareLink } from '@/components/icons/AppIcons'
+import { Copy, Link2, Trash2 } from 'lucide-react'
 import { useUiT } from '@/i18n/context'
 import {
   buildShareUrl,
@@ -90,7 +90,7 @@ export function ShareStoryDialog({ open, onOpenChange, story, onShared }: ShareS
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <IconShareLink className="h-5 w-5" />
+            <Link2 className="h-5 w-5" />
             {t('share.title')}
           </AlertDialogTitle>
           <AlertDialogDescription>{t('share.description')}</AlertDialogDescription>
@@ -124,7 +124,7 @@ export function ShareStoryDialog({ open, onOpenChange, story, onShared }: ShareS
                 className="mt-3"
                 onClick={() => void handleCopy(latestUrl)}
               >
-                <IconCopy className="mr-2 h-4 w-4" />
+                <Copy className="mr-2 h-4 w-4" />
                 {t('share.copy')}
               </Button>
             </div>
@@ -153,7 +153,7 @@ export function ShareStoryDialog({ open, onOpenChange, story, onShared }: ShareS
                     aria-label={t('share.revoke')}
                     onClick={() => void handleRevoke(share)}
                   >
-                    <IconRevoke className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}

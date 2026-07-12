@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronRight, FolderPlus, Library, MessageSquare, PanelLeft, PanelLeftClose, SlidersHorizontal } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, FolderPlus, Library, LogOut, MessageSquare, PanelLeft, PanelLeftClose, Pencil, Plus, Search, SlidersHorizontal, Trash2, User } from 'lucide-react'
 import { AuthDialog } from '@/components/auth/AuthDialog'
 import { GuestRegisterPrompt } from '@/components/auth/GuestRegisterPrompt'
-import { IconLogOut, IconPencil, IconPlus, IconSearch, IconTrash, IconUser } from '@/components/icons/AppIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -291,7 +290,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         title={t('sidebar.newStory')}
         aria-label={t('sidebar.newStory')}
       >
-        <IconPlus className="h-5 w-5" />
+        <Plus className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
@@ -357,11 +356,11 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
         <div className="grid grid-cols-2 gap-2">
           <Button className="w-full" onClick={openNewStoryFlow}>
-            <IconPlus className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             {t('sidebar.newStory')}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setShowNewFolder(true)}>
-            <IconPlus className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             <Library className="h-4 w-4" />
             {t('sidebar.collection')}
           </Button>
@@ -388,7 +387,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         <div className="mt-3 border-t pt-3">
           {isAuthenticated ? (
             <Button variant="outline" className="w-full" onClick={() => void signOut()}>
-              <IconLogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" />
               {t('auth.signOut')}
             </Button>
           ) : (
@@ -400,7 +399,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
                 setShowAuthDialog(true)
               }}
             >
-              <IconUser className="h-4 w-4" />
+              <User className="h-4 w-4" />
               {t('auth.signIn')}
             </Button>
           )}
@@ -425,7 +424,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         )}
 
         <div className="relative mt-3">
-          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
           <Input
             className="pl-9"
             placeholder={t('sidebar.searchPlaceholder')}
@@ -694,7 +693,7 @@ function CollectionHeader({
               onStartEdit()
             }}
           >
-            <IconPencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
 
           <AlertDialog>
@@ -706,7 +705,7 @@ function CollectionHeader({
                 title={t('sidebar.deleteCollection')}
                 onClick={(e) => e.stopPropagation()}
               >
-                <IconTrash className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
+                <Trash2 className="h-3.5 w-3.5 text-[var(--color-destructive)]" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
