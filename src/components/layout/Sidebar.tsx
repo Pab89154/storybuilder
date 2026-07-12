@@ -46,7 +46,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const t = useUiT()
-  const { isAuthenticated, signOut } = useAuth()
+  const { user, isAuthenticated, signOut } = useAuth()
   const {
     stories,
     storiesByFolder,
@@ -386,10 +386,12 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
         <div className="mt-3 border-t pt-3">
           {isAuthenticated ? (
-            <Button variant="outline" className="w-full" onClick={() => void signOut()}>
-              <LogOut className="h-4 w-4" />
-              {t('auth.signOut')}
-            </Button>
+            <div className="flex min-w-0 items-center gap-2 px-1">
+              <User className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" />
+              <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-muted-foreground)]" title={user?.email ?? ''}>
+                {user?.email}
+              </span>
+            </div>
           ) : (
             <Button
               variant="outline"
@@ -542,6 +544,19 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           )}
         </div>
       </ScrollArea>
+
+      {isAuthenticated ? (
+        <div className="border-t p-3">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-[var(--color-destructive)] hover:text-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/10"
+            onClick={() => void signOut()}
+          >
+            <LogOut className="h-4 w-4" />
+            {t('auth.signOut')}
+          </Button>
+        </div>
+      ) : null}
         </div>
     </aside>
     {guestPrompt}
