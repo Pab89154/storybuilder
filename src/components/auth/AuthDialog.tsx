@@ -74,7 +74,12 @@ export function AuthDialog({ open, onOpenChange, initialMode = 'signIn' }: AuthD
         }
         return
       }
-      await signIn(email.trim(), password)
+      const result = await signIn(email.trim(), password)
+      if (result.recoveryKey) {
+        setRecoveryKey(result.recoveryKey)
+        setMessage(t('auth.recoveryKeyHint'))
+        return
+      }
       handleOpenChange(false)
     } catch (submitError) {
       setError(getErrorMessage(submitError, t('auth.genericError')))

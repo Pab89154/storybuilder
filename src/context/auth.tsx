@@ -8,7 +8,13 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { clearMasterKey } from '@/lib/crypto/keySession'
+import {
+  clearMasterKey,
+  clearPersistedMasterKey,
+  getMasterKey,
+  loadPersistedMasterKey,
+  persistMasterKey,
+} from '@/lib/crypto/keySession'
 import {
   recoverUserEncryption,
   sendRecoveryKeyEmail,
@@ -25,12 +31,11 @@ type AuthContextValue = {
   isLoading: boolean
   encryptionReady: boolean
   isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ recoveryKey?: string }>
   signUp: (email: string, password: string) => Promise<{ recoveryKey: string; needsEmailConfirmation: boolean }>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   completePasswordReset: (password: string, recoveryKey: string) => Promise<void>
-  unlockEncryption: (password: string) => Promise<{ recoveryKey?: string }>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -48,14 +53,18 @@ async function ensureEncryptionForPassword(password: string): Promise<{ recovery
     .maybeSingle()
   if (error) throw error
 
+  let result: { recoveryKey?: string } = {}
   if (!data) {
     const { recoveryKey } = await setupUserEncryption(password)
     void sendRecoveryKeyEmail(recoveryKey)
-    return { recoveryKey }
+    result = { recoveryKey }
+  } else {
+    await unlockUserEncryption(password)
   }
 
-  await unlockUserEncryption(password)
-  return {}
+  const key = getMasterKey()
+  if (key) await persistMasterKey(user.id, key)
+  return result
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -72,10 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
+      const restoredUser = data.session?.user ?? null
+      if (restoredUser) {
+        const key = await loadPersistedMasterKey(restoredUser.id)
+        if (key) {
+          setSession(data.session)
+          setUser(restoredUser)
+          setDatabaseAuthMode('authenticated')
+          setEncryptionReady(true)
+          setIsLoading(false)
+          return
+        }
+        // Session persisted but the local key is gone (e.g. cleared storage or a
+        // new device). Sign out so the user simply logs in again, which unlocks
+        // automatically — no separate unlock password step.
+        await supabase.auth.signOut()
+        clearMasterKey()
+        setDatabaseAuthMode('guest')
+      }
+      setSession(null)
+      setUser(null)
       setIsLoading(false)
     })
 
@@ -101,10 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    await ensureEncryptionForPassword(password)
+    const result = await ensureEncryptionForPassword(password)
     clearGuestData()
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
+    return result
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
@@ -130,13 +158,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    const userId = user?.id
     const { error } = await supabase.auth.signOut()
     if (error) throw error
     clearMasterKey()
+    clearPersistedMasterKey(userId)
     clearGuestData()
     setDatabaseAuthMode('guest')
     setEncryptionReady(false)
-  }, [])
+  }, [user])
 
   const requestPasswordReset = useCallback(async (email: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
@@ -146,19 +176,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const completePasswordReset = useCallback(async (password: string, recoveryKey: string) => {
-    const { error } = await supabase.auth.updateUser({ password })
+    const {
+      data: { user: resetUser },
+      error,
+    } = await supabase.auth.updateUser({ password })
     if (error) throw error
     await recoverUserEncryption(recoveryKey, password)
+    const key = getMasterKey()
+    if (key && resetUser) await persistMasterKey(resetUser.id, key)
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
-  }, [])
-
-  const unlockEncryption = useCallback(async (password: string) => {
-    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
-    const result = await ensureEncryptionForPassword(password)
-    setDatabaseAuthMode('authenticated')
-    setEncryptionReady(true)
-    return result
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -173,7 +200,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       requestPasswordReset,
       completePasswordReset,
-      unlockEncryption,
     }),
     [
       user,
@@ -185,7 +211,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       requestPasswordReset,
       completePasswordReset,
-      unlockEncryption,
     ],
   )
 
