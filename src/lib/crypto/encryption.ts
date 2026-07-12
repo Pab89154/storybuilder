@@ -22,8 +22,8 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
 }
 
-async function importRawKey(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', toArrayBuffer(raw), 'AES-GCM', false, [
+async function importRawKey(raw: Uint8Array, extractable = false): Promise<CryptoKey> {
+  return crypto.subtle.importKey('raw', toArrayBuffer(raw), 'AES-GCM', extractable, [
     'encrypt',
     'decrypt',
   ])
@@ -70,7 +70,8 @@ export async function hashRecoveryKey(recoveryKeyBase64: string): Promise<string
 
 export async function generateMasterKey(): Promise<CryptoKey> {
   const raw = crypto.getRandomValues(new Uint8Array(KEY_BYTES))
-  return importRawKey(raw)
+  // Extractable so it can be re-wrapped for password/recovery key changes.
+  return importRawKey(raw, true)
 }
 
 export async function exportMasterKey(masterKey: CryptoKey): Promise<string> {
@@ -79,7 +80,8 @@ export async function exportMasterKey(masterKey: CryptoKey): Promise<string> {
 }
 
 export async function importMasterKey(masterKeyBase64: string): Promise<CryptoKey> {
-  return importRawKey(base64ToBytes(masterKeyBase64))
+  // Extractable so it can be re-wrapped when the password or recovery key changes.
+  return importRawKey(base64ToBytes(masterKeyBase64), true)
 }
 
 export async function encryptWithKey(value: unknown, key: CryptoKey): Promise<string> {
