@@ -190,14 +190,3 @@ html.night-mode .bg-red-50 {
 html.night-mode .text-red-800 {
   color: oklch(0.85 0.08 25) !important;
 }
-
-html.blind-kid-mode :focus-visible {
-  outline-width: 3px;
-  outline-offset: 3px;
-}
-
-html.blind-kid-mode button:focus-visible,
-html.blind-kid-mode input:focus-visible,
-html.blind-kid-mode textarea:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 45%, transparent);
-}

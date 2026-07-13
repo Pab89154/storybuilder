@@ -24,7 +24,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { SidebarStoryDnD, type StoryGroupConfig } from '@/components/layout/SidebarStoryDnD'
-import { BlindKidModeToggle } from '@/components/layout/BlindKidModeToggle'
 import { NightModeToggle } from '@/components/layout/NightModeToggle'
 import { UiLanguageSwitcher } from '@/components/layout/UiLanguageSwitcher'
 import { FeedbackDialog } from '@/components/layout/FeedbackDialog'
@@ -312,7 +311,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       >
         <MessageSquare className="h-5 w-5" />
       </Button>
-      <BlindKidModeToggle size="rail" />
       <NightModeToggle size="rail" />
     </div>
   )
@@ -382,8 +380,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           <MessageSquare className="h-4 w-4" />
           {t('feedback.button')}
         </Button>
-        <BlindKidModeToggle variant="menu" />
-
         <div className="mt-3 border-t pt-3">
           {isAuthenticated ? (
             <div className="flex min-w-0 items-center gap-2 px-1">
