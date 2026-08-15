@@ -12,9 +12,12 @@ This creates encrypted story tables, user encryption keys, share links, and RLS 
 
 In **Authentication → Providers**, keep **Email** enabled and disable other providers.
 
-Recommended in **Authentication → Settings**:
+Recommended in **Authentication → Providers → Email**:
 
-- Enable **Confirm email**
+- Disable **Confirm email** so new accounts can sign in immediately
+
+In **Authentication → URL Configuration**:
+
 - Set **Site URL** to your GitHub Pages URL (or `http://localhost:5173` for local dev)
 - Add redirect URLs:
   - `http://localhost:5173/**`

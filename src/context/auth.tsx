@@ -23,7 +23,12 @@ import {
 } from '@/lib/cloud/encryptionKeys'
 import { clearGuestData } from '@/lib/guest/database'
 import { setDatabaseAuthMode } from '@/db/database'
-import { isSupabaseConfigured, supabase } from '@/lib/supabase/client'
+import { buildAppUrl } from '@/lib/auth/redirects'
+import {
+  isSupabaseConfigured,
+  supabase,
+  supabaseConfigError,
+} from '@/lib/supabase/client'
 
 type AuthContextValue = {
   user: User | null
@@ -31,6 +36,7 @@ type AuthContextValue = {
   isLoading: boolean
   encryptionReady: boolean
   isAuthenticated: boolean
+  isConfigured: boolean
   signIn: (email: string, password: string) => Promise<{ recoveryKey?: string }>
   signUp: (email: string, password: string) => Promise<{ recoveryKey: string; needsEmailConfirmation: boolean }>
   signOut: () => Promise<void>
@@ -70,22 +76,34 @@ async function ensureEncryptionForPassword(password: string): Promise<{ recovery
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => isSupabaseConfigured)
   const [encryptionReady, setEncryptionReady] = useState(false)
 
   useEffect(() => {
     let mounted = true
 
     if (!isSupabaseConfigured) {
-      setIsLoading(false)
+      if (import.meta.env.DEV) {
+        console.warn('[auth] Supabase is unavailable:', supabaseConfigError)
+      }
       return
     }
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!mounted) return
+      if (error) {
+        console.warn('[auth] Failed to restore session')
+        setSession(null)
+        setUser(null)
+        setDatabaseAuthMode('guest')
+        setIsLoading(false)
+        return
+      }
+
       const restoredUser = data.session?.user ?? null
       if (restoredUser) {
         const key = await loadPersistedMasterKey(restoredUser.id)
+        if (!mounted) return
         if (key) {
           setSession(data.session)
           setUser(restoredUser)
@@ -98,23 +116,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // new device). Sign out so the user simply logs in again, which unlocks
         // automatically — no separate unlock password step.
         await supabase.auth.signOut()
+        if (!mounted) return
         clearMasterKey()
         setDatabaseAuthMode('guest')
       }
       setSession(null)
       setUser(null)
       setIsLoading(false)
+    }).catch(() => {
+      if (!mounted) return
+      console.warn('[auth] Failed to initialize authentication')
+      clearMasterKey()
+      setSession(null)
+      setUser(null)
+      setEncryptionReady(false)
+      setDatabaseAuthMode('guest')
+      setIsLoading(false)
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
       if (!nextSession) {
         clearMasterKey()
         setEncryptionReady(false)
         setDatabaseAuthMode('guest')
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Keep session for reset-password page; encryption unlock happens there.
+        setDatabaseAuthMode('authenticated')
       }
     })
 
@@ -126,18 +157,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    const result = await ensureEncryptionForPassword(password)
-    clearGuestData()
-    setDatabaseAuthMode('authenticated')
-    setEncryptionReady(true)
-    return result
+    try {
+      const result = await ensureEncryptionForPassword(password)
+      clearGuestData()
+      setDatabaseAuthMode('authenticated')
+      setEncryptionReady(true)
+      setSession(data.session)
+      setUser(data.user)
+      return result
+    } catch (encryptionError) {
+      // Avoid leaving a half-authenticated session if encryption unlock fails.
+      await supabase.auth.signOut().catch(() => undefined)
+      clearMasterKey()
+      setEncryptionReady(false)
+      setDatabaseAuthMode('guest')
+      setSession(null)
+      setUser(null)
+      throw encryptionError
+    }
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
-    const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`
+    const redirectTo = buildAppUrl()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -147,11 +191,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const needsEmailConfirmation = !data.session
     if (data.session) {
-      const { recoveryKey } = await ensureEncryptionForPassword(password)
-      clearGuestData()
-      setDatabaseAuthMode('authenticated')
-      setEncryptionReady(true)
-      return { recoveryKey: recoveryKey ?? '', needsEmailConfirmation: false }
+      try {
+        const { recoveryKey } = await ensureEncryptionForPassword(password)
+        clearGuestData()
+        setDatabaseAuthMode('authenticated')
+        setEncryptionReady(true)
+        setSession(data.session)
+        setUser(data.user)
+        return { recoveryKey: recoveryKey ?? '', needsEmailConfirmation: false }
+      } catch (encryptionError) {
+        await supabase.auth.signOut().catch(() => undefined)
+        clearMasterKey()
+        setEncryptionReady(false)
+        setDatabaseAuthMode('guest')
+        setSession(null)
+        setUser(null)
+        throw encryptionError
+      }
     }
 
     return { recoveryKey: '', needsEmailConfirmation }
@@ -159,23 +215,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const userId = user?.id
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    }
     clearMasterKey()
     clearPersistedMasterKey(userId)
     clearGuestData()
     setDatabaseAuthMode('guest')
     setEncryptionReady(false)
+    setSession(null)
+    setUser(null)
   }, [user])
 
   const requestPasswordReset = useCallback(async (email: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
-    const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}reset-password`
+    const redirectTo = buildAppUrl('reset-password')
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) throw error
   }, [])
 
   const completePasswordReset = useCallback(async (password: string, recoveryKey: string) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const {
       data: { user: resetUser },
       error,
@@ -195,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       encryptionReady,
       isAuthenticated: Boolean(user && encryptionReady),
+      isConfigured: isSupabaseConfigured,
       signIn,
       signUp,
       signOut,

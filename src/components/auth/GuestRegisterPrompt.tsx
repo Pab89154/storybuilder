@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -34,12 +33,25 @@ export function GuestRegisterPrompt({
           <AlertDialogDescription>{t('auth.guestPromptDescription')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
-          <Button onClick={onRegister}>{t('auth.signUp')}</Button>
-          <AlertDialogAction asChild>
-            <Button variant="outline" onClick={onContinueGuest}>
-              {t('auth.continueGuest')}
-            </Button>
-          </AlertDialogAction>
+          <Button
+            type="button"
+            onClick={() => {
+              onOpenChange(false)
+              onRegister()
+            }}
+          >
+            {t('auth.signUp')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false)
+              onContinueGuest()
+            }}
+          >
+            {t('auth.continueGuest')}
+          </Button>
           <AlertDialogCancel>{t('sidebar.cancel')}</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>

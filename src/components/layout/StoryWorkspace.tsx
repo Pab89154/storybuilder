@@ -168,7 +168,10 @@ export function StoryWorkspace() {
     displayWords >= target
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden" aria-label={t('workspace.studioAria')}>
+      <div className="border-b px-3 pt-2.5 sm:px-4">
+        <span className="story-studio-chip">{t('workspace.studioName')}</span>
+      </div>
       <header className="shrink-0 border-b bg-[var(--color-card)] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2">

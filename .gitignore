@@ -18,6 +18,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+passcode.env
+
+# Separate chatbot app (own package / localhost :5174)
+/private-chatbot/
 
 # Editor directories and files
 .vscode/*

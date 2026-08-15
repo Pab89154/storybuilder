@@ -59,11 +59,11 @@ export function UiLanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, values?: InterpolateValues) => {
-      const raw = resolveKey(messages, key)
+      const raw = resolveKey(messages, key) ?? (locale === 'en' ? undefined : resolveKey(catalogs.en, key))
       if (raw === undefined) return key
       return interpolate(raw, values)
     },
-    [messages],
+    [locale, messages],
   )
 
   const value = useMemo(

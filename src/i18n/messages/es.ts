@@ -61,10 +61,16 @@ export const es = {
     expandSidebar: 'Mostrar barra lateral',
     welcomeTitle: 'Bienvenido a StoryBuilder',
     welcomeHint:
-      'Crea un cuento desde la barra lateral, añade personajes, escribe un prompt y deja que la IA cree la aventura — todo en el navegador.',
-    welcomeStep1: 'Empieza un libro nuevo desde la barra lateral',
+      'Crea un cuento con personajes, un prompt y capítulos generados por IA — todo en el navegador.',
+    welcomeStep1: 'Empieza un libro nuevo',
     welcomeStep2: 'Añade héroes, amigos y villanos',
     welcomeStep3: 'Describe tu idea y genera capítulos',
+    welcomeEyebrow: 'Tu próxima aventura empieza aquí',
+    studioName: 'StoryStudio',
+    studioAria: 'Espacio de trabajo StoryStudio',
+    createFirstStory: 'Crea tu primer cuento',
+    welcomeBadgePrivate: 'Privado por defecto',
+    welcomeBadgeBrowser: 'Funciona en tu navegador',
     read: 'Leer',
     edit: 'Editar',
     generate: 'Generar',
@@ -328,6 +334,20 @@ export const es = {
     recoveryKeyHint: 'Guarda esta clave de recuperación. También te la enviamos por correo.',
     recoveryKeyLabel: 'Clave de recuperación',
     genericError: 'Algo salió mal. Inténtalo de nuevo.',
+    close: 'Cerrar',
+    emailRequired: 'Introduce tu correo electrónico.',
+    invalidEmail: 'Introduce un correo válido.',
+    passwordRequired: 'Introduce tu contraseña.',
+    weakPassword: 'Usa una contraseña de al menos 6 caracteres.',
+    invalidCredentials: 'Correo o contraseña incorrectos.',
+    emailNotConfirmed: 'Confirma tu correo antes de iniciar sesión.',
+    emailAlreadyRegistered: 'Ya existe una cuenta con este correo. Prueba a iniciar sesión.',
+    networkError: 'Error de red. Comprueba tu conexión e inténtalo de nuevo.',
+    configMissing: 'El inicio de sesión no está disponible porque la autenticación no está configurada.',
+    rateLimited: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+    invalidRecoveryKey: 'La clave de recuperación no es válida. Revisa tu correo de registro.',
+    recoveryKeyRequired: 'Introduce tu clave de recuperación.',
+    backToApp: 'Volver a StoryBuilder',
     guestPromptTitle: 'Guarda y comparte tus cuentos',
     guestPromptDescription:
       'Los cuentos de invitado solo existen en esta pestaña. Crea una cuenta gratuita para guardarlos de forma segura y compartir enlaces.',
@@ -341,6 +361,40 @@ export const es = {
     resetPassword: 'Actualizar contraseña',
     resetComplete: 'Contraseña actualizada. Puedes volver a la app.',
     account: 'Cuenta',
+  },
+
+  guide: {
+    button: 'Cómo usar StoryBuilder',
+    title: 'Cómo usar StoryBuilder',
+    description: 'Una guía rápida de StoryStudio: crea, genera, lee y guarda cuentos.',
+    close: 'Cerrar guía',
+    step1Title: '1. Crea un cuento',
+    step1Body:
+      'Haz clic en “Crea tu primer cuento” o “Nuevo cuento” y elige el idioma y la edad del lector.',
+    step2Title: '2. Describe la idea',
+    step2Body:
+      'Escribe un prompt con el escenario, personajes, problema, ambiente o aventura. Cuanto más concreto, más personal suele ser el cuento.',
+    step3Title: '3. Añade personajes',
+    step3Body:
+      'Usa Personajes para añadir héroes, amigos, familia, criaturas o villanos. Ayudan a mantener la historia coherente.',
+    step4Title: '4. Elige la configuración',
+    step4Body:
+      'Revisa edad del lector, género, modo, número de capítulos y palabras por capítulo. Esto afecta vocabulario, longitud y estructura.',
+    step5Title: '5. Genera el cuento',
+    step5Body:
+      'Haz clic en “Empezar libro”, “Generar” o el botón equivalente. Verás el progreso mientras StoryStudio escribe.',
+    step6Title: '6. Lee y edita',
+    step6Body:
+      'Usa el modo Leer para disfrutar el cuento y Editar para cambiar título, prompt, personajes o párrafos.',
+    step7Title: '7. Continúa o regenera',
+    step7Body:
+      'Continúa capítulos, regenera contenido, detén la generación, exporta o comparte cuando esas herramientas estén disponibles.',
+    step8Title: '8. Privacidad y guardado',
+    step8Body:
+      'Los cuentos de invitado solo permanecen en esta sesión del navegador. Inicia sesión para guardar en la nube y compartir enlaces.',
+    troubleTitle: 'Si no se puede generar',
+    troubleBody:
+      'StoryBuilder necesita un navegador compatible. Si WebGPU o el modelo local no están disponibles, la generación puede ser más lenta o fallar: prueba Chrome o Edge, espera a que cargue el modelo y vuelve a intentar.',
   },
   share: {
     title: 'Compartir cuento',

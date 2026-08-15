@@ -61,10 +61,16 @@ export const en = {
     expandSidebar: 'Show sidebar',
     welcomeTitle: 'Welcome to StoryBuilder',
     welcomeHint:
-      'Create a story from the sidebar, add characters, write a prompt, and let AI craft an adventure — entirely in your browser.',
-    welcomeStep1: 'Start a new book from the sidebar',
+      'Create a story with characters, a prompt, and AI-generated chapters — entirely in your browser.',
+    welcomeStep1: 'Start a new book',
     welcomeStep2: 'Add heroes, friends, and villains',
     welcomeStep3: 'Describe your idea and generate chapters',
+    welcomeEyebrow: 'Your next adventure starts here',
+    studioName: 'StoryStudio',
+    studioAria: 'StoryStudio workspace',
+    createFirstStory: 'Create your first story',
+    welcomeBadgePrivate: 'Private by default',
+    welcomeBadgeBrowser: 'Works in your browser',
     read: 'Read',
     edit: 'Edit',
     generate: 'Generate',
@@ -330,6 +336,20 @@ export const en = {
     recoveryKeyHint: 'Save this recovery key. We also email it to you for password recovery.',
     recoveryKeyLabel: 'Recovery key',
     genericError: 'Something went wrong. Please try again.',
+    close: 'Close',
+    emailRequired: 'Enter your email address.',
+    invalidEmail: 'Enter a valid email address.',
+    passwordRequired: 'Enter your password.',
+    weakPassword: 'Use a password with at least 6 characters.',
+    invalidCredentials: 'Incorrect email or password.',
+    emailNotConfirmed: 'Confirm your email before signing in.',
+    emailAlreadyRegistered: 'An account with this email already exists. Try signing in.',
+    networkError: 'Network error. Check your connection and try again.',
+    configMissing: 'Sign-in is unavailable because authentication is not configured for this deployment.',
+    rateLimited: 'Too many attempts. Please wait a moment and try again.',
+    invalidRecoveryKey: 'That recovery key is invalid. Check your signup email and try again.',
+    recoveryKeyRequired: 'Enter your recovery key.',
+    backToApp: 'Back to StoryBuilder',
     guestPromptTitle: 'Save and share your stories',
     guestPromptDescription:
       'Guest stories stay only in this browser tab. Create a free account to save them securely and share links.',
@@ -343,6 +363,40 @@ export const en = {
     resetPassword: 'Update password',
     resetComplete: 'Password updated. You can return to the app.',
     account: 'Account',
+  },
+
+  guide: {
+    button: 'How to use StoryBuilder',
+    title: 'How to use StoryBuilder',
+    description: 'A quick tour of StoryStudio — create, generate, read, and save stories.',
+    close: 'Close guide',
+    step1Title: '1. Create a story',
+    step1Body:
+      'Click “Create your first story” or “New story,” then choose the story language and reader age.',
+    step2Title: '2. Describe the idea',
+    step2Body:
+      'Enter a story prompt with the setting, characters, problem, mood, or adventure. More specific prompts usually feel more personal.',
+    step3Title: '3. Add characters',
+    step3Body:
+      'Use the Characters section to add heroes, friends, family, creatures, or villains. Characters help keep the story consistent.',
+    step4Title: '4. Choose story settings',
+    step4Body:
+      'Review reader age, genre, story mode, chapter count, and words per chapter. These shape vocabulary, length, and structure.',
+    step5Title: '5. Generate the story',
+    step5Body:
+      'Click “Start book,” “Generate,” or the matching generation button. Watch the loading progress while StoryStudio writes.',
+    step6Title: '6. Read and edit',
+    step6Body:
+      'Use Read mode to enjoy the story and Edit mode to change the title, prompt, characters, or paragraphs.',
+    step7Title: '7. Continue or regenerate',
+    step7Body:
+      'Continue chapters, regenerate content, stop generation, export a story, or share when those tools are available.',
+    step8Title: '8. Privacy and saving',
+    step8Body:
+      'Guest stories stay in this browser session only. Sign in to save securely in the cloud and share links.',
+    troubleTitle: 'If generation cannot start',
+    troubleBody:
+      'StoryBuilder needs a supported browser. If WebGPU or the local model is unavailable, generation may be slower or blocked — try Chrome or Edge, wait for the model to finish loading, then retry.',
   },
   share: {
     title: 'Share story',

@@ -106,3 +106,42 @@ The app includes a **Feedback** button in the sidebar. When a user submits feedb
 2. Fill in a message and click **Continue on GitHub**.
 3. Submit the issue on GitHub.
 4. Confirm the **Feedback email notification** workflow runs and the email arrives.
+
+## Authentication setup
+
+StoryBuilder uses Supabase Auth (email/password) with client-side encryption.
+
+### Required environment variables
+
+```bash
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_ANON_OR_PUBLISHABLE_KEY
+```
+
+For GitHub Pages builds, `.github/workflows/deploy-pages.yml` derives the base
+path from the repository name. For this repository it resolves to:
+
+```bash
+VITE_BASE_PATH=/storybuilder/
+```
+
+Add repository secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Do not
+use a Supabase `service_role` or secret key in either browser-facing variable.
+
+### Supabase Dashboard → Authentication → URL configuration
+
+Add these so password-reset links work:
+
+- **Site URL:** `https://pab89154.github.io/storybuilder/` (or your production origin)
+- **Redirect URLs:**
+  - `http://localhost:5173/**`
+  - `http://localhost:5175/**`
+  - `https://pab89154.github.io/storybuilder/**`
+  - `https://pab89154.github.io/storybuilder/reset-password`
+
+The production build copies `index.html` to `404.html` so deep links like `/reset-password` work on GitHub Pages.
+
+### Supabase Dashboard → Authentication → Providers → Email
+
+Turn **Confirm email** off. Sign-up then returns a session immediately, so new
+users go straight into the app without checking their inbox.

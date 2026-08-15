@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronRight, FolderPlus, Library, LogOut, MessageSquare, PanelLeft, PanelLeftClose, Pencil, Plus, Search, SlidersHorizontal, Trash2, User } from 'lucide-react'
-import { AuthDialog } from '@/components/auth/AuthDialog'
-import { GuestRegisterPrompt } from '@/components/auth/GuestRegisterPrompt'
+import { BookOpen, ChevronDown, ChevronRight, CircleHelp, FolderPlus, Library, LogOut, MessageSquare, PanelLeft, PanelLeftClose, Pencil, Plus, Search, SlidersHorizontal, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,10 +25,10 @@ import { SidebarStoryDnD, type StoryGroupConfig } from '@/components/layout/Side
 import { NightModeToggle } from '@/components/layout/NightModeToggle'
 import { UiLanguageSwitcher } from '@/components/layout/UiLanguageSwitcher'
 import { FeedbackDialog } from '@/components/layout/FeedbackDialog'
-import { NewStoryDialog } from '@/components/story/NewStoryDialog'
 import { LanguageFilterSelect } from '@/components/story/LanguageSelect'
 import { useUiT } from '@/i18n/context'
 import { useAuth } from '@/context/auth'
+import { useStoryCreation } from '@/context/storyCreation'
 import { cancelGenerationIfActive } from '@/hooks/useGeneration'
 import { useStories } from '@/hooks/useStories'
 import { UNCATEGORIZED_KEY } from '@/lib/folderContainers'
@@ -41,11 +39,13 @@ import type { Folder, Story } from '@/types/story'
 interface SidebarProps {
   collapsed: boolean
   onToggleCollapsed: () => void
+  onOpenHowToGuide: () => void
 }
 
-export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
+export function Sidebar({ collapsed, onToggleCollapsed, onOpenHowToGuide }: SidebarProps) {
   const t = useUiT()
   const { user, isAuthenticated, signOut } = useAuth()
+  const { openNewStoryFlow, openSignIn } = useStoryCreation()
   const {
     stories,
     storiesByFolder,
@@ -60,7 +60,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     setGenreFilter,
     setLanguageFilter,
     setFolderFilter,
-    createNewStory,
     addFolder,
     renameFolder,
     removeFolder,
@@ -82,10 +81,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
   const [newFolderName, setNewFolderName] = useState('')
   const [showNewFolder, setShowNewFolder] = useState(false)
-  const [showNewStory, setShowNewStory] = useState(false)
-  const [showGuestPrompt, setShowGuestPrompt] = useState(false)
-  const [showAuthDialog, setShowAuthDialog] = useState(false)
-  const [authDialogMode, setAuthDialogMode] = useState<'signIn' | 'signUp' | 'forgot'>('signUp')
   const [showFeedback, setShowFeedback] = useState(false)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({})
@@ -217,43 +212,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     return []
   })()
 
-  const openNewStoryFlow = () => {
-    if (!isAuthenticated) {
-      setShowGuestPrompt(true)
-      return
-    }
-    setShowNewStory(true)
-  }
-
-  const newStoryDialog = (
-    <NewStoryDialog
-      open={showNewStory}
-      onOpenChange={setShowNewStory}
-      onCreate={(language, readerAge) => {
-        void createNewStory(language, readerAge)
-      }}
-    />
-  )
-
-  const guestPrompt = (
-    <GuestRegisterPrompt
-      open={showGuestPrompt}
-      onOpenChange={setShowGuestPrompt}
-      onContinueGuest={() => {
-        setShowGuestPrompt(false)
-        setShowNewStory(true)
-      }}
-      onRegister={() => {
-        setShowGuestPrompt(false)
-        setAuthDialogMode('signUp')
-        setShowAuthDialog(true)
-      }}
-    />
-  )
-
-  const authDialog = (
-    <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} initialMode={authDialogMode} />
-  )
 
   const feedbackDialog = (
     <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
@@ -311,6 +269,16 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       >
         <MessageSquare className="h-5 w-5" />
       </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9"
+        onClick={onOpenHowToGuide}
+        title={t('guide.button')}
+        aria-label={t('guide.button')}
+      >
+        <CircleHelp className="h-5 w-5" />
+      </Button>
       <NightModeToggle size="rail" />
     </div>
   )
@@ -320,7 +288,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       <aside
         aria-label={collapsed ? t('sidebar.libraryCollapsed') : t('app.name')}
         className={cn(
-          'relative flex h-full shrink-0 overflow-hidden border-r bg-[var(--color-sidebar)]',
+          'relative flex h-full shrink-0 overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-sidebar)] shadow-[1px_0_0_oklch(1_0_0/0.4)]',
           'transition-[width,transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
           collapsed ? 'w-14' : 'w-80',
           !collapsed &&
@@ -380,6 +348,15 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
           <MessageSquare className="h-4 w-4" />
           {t('feedback.button')}
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-1 w-full justify-start gap-2 text-[var(--color-muted-foreground)]"
+          onClick={onOpenHowToGuide}
+        >
+          <CircleHelp className="h-4 w-4" />
+          {t('guide.button')}
+        </Button>
         <div className="mt-3 border-t pt-3">
           {isAuthenticated ? (
             <div className="flex min-w-0 items-center gap-2 px-1">
@@ -392,10 +369,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => {
-                setAuthDialogMode('signIn')
-                setShowAuthDialog(true)
-              }}
+              onClick={openSignIn}
             >
               <User className="h-4 w-4" />
               {t('auth.signIn')}
@@ -555,9 +529,6 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       ) : null}
         </div>
     </aside>
-    {guestPrompt}
-    {authDialog}
-    {newStoryDialog}
     {feedbackDialog}
     </>
   )
