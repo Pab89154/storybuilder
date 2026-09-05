@@ -1,16 +1,12 @@
-export type ModelTier = 'primary' | 'fallback'
-export type LlmBackend = 'openai' | 'webllm'
+export type LlmBackend = 'openai'
 
-/** Progress shape shared by WebLLM downloads and instant OpenAI ready. */
+/** Progress while connecting to OpenAI. */
 export interface LoadProgress {
   progress: number
   text: string
 }
 
-/**
- * Minimal chat engine used by story generation / translation.
- * Backed by OpenAI (online) or WebLLM (local) depending on env.
- */
+/** Chat engine used by story generation / translation (OpenAI only). */
 export interface ChatEngine {
   readonly backend: LlmBackend
   readonly modelId: string

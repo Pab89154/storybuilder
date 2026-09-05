@@ -14,7 +14,6 @@ import { StorySetupPanel, StorySetupActions, RegenerateBookButton } from '@/comp
 import { StoryEditBody } from '@/components/story/StoryEditBody'
 import { StoryBookReader } from '@/components/story/StoryBookReader'
 import { getBookProgress, getChapterWordCount } from '@/lib/chapterProgress'
-import { WebGPUWarning } from '@/components/model/WebGPUWarning'
 import { downloadStoryTxt } from '@/lib/export/txt'
 import { LanguageSelect } from '@/components/story/LanguageSelect'
 import { DuplicateStoryDialog } from '@/components/story/DuplicateStoryDialog'
@@ -25,7 +24,7 @@ import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
 import { useStoryLanguage } from '@/hooks/useStoryLanguage'
 import { cancelActiveGeneration, useGeneration } from '@/hooks/useGeneration'
-import { useStoryStore } from '@/store/storyStore'
+import { useLLMStore, useStoryStore } from '@/store/storyStore'
 import { cn } from '@/lib/utils'
 
 type StoryViewMode = 'read' | 'edit'
@@ -106,6 +105,7 @@ export function StoryWorkspace() {
     streamingContent,
     advancedChapterBrief,
   } = useStoryStore()
+  const llmError = useLLMStore((s) => s.error)
   const streamingWordCount =
     streamingParagraphId && streamingContent
       ? { paragraphId: streamingParagraphId, content: streamingContent }
@@ -367,7 +367,11 @@ export function StoryWorkspace() {
           )}
         >
           <div className="mx-auto max-w-3xl space-y-3 p-4">
-            <WebGPUWarning />
+            {llmError ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                {llmError}
+              </div>
+            ) : null}
 
             {generationError ? (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">

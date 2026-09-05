@@ -11,12 +11,12 @@ export const en = {
   uiLanguage: { label: 'Interface language', aria: 'Interface language' },
   nightMode: { enable: 'Night mode', disable: 'Day mode' },
   loader: {
-    errorTextTitle: 'Could not load text model',
+    errorTextTitle: 'Could not connect to AI',
     retry: 'Retry',
-    titleText: 'Downloading text model',
-    textModel: 'Text model',
+    titleText: 'Connecting to AI…',
+    textModel: 'AI',
     preparing: 'Preparing…',
-    webgpuFallback: 'WebGPU not detected. Compatible mode (slower).',
+    webgpuFallback: 'Online connection required.',
   },
   sidebar: {
     libraryCollapsed: 'Story library (collapsed)',
@@ -61,7 +61,7 @@ export const en = {
     expandSidebar: 'Show sidebar',
     welcomeTitle: 'Welcome to StoryBuilder',
     welcomeHint:
-      'Create a story with characters, a prompt, and AI-generated chapters — entirely in your browser.',
+      'Create a story with characters, a prompt, and AI-generated chapters online.',
     welcomeStep1: 'Start a new book',
     welcomeStep2: 'Add heroes, friends, and villains',
     welcomeStep3: 'Describe your idea and generate chapters',
@@ -70,7 +70,7 @@ export const en = {
     studioAria: 'StoryStudio workspace',
     createFirstStory: 'Create your first story',
     welcomeBadgePrivate: 'Private by default',
-    welcomeBadgeBrowser: 'Works in your browser',
+    welcomeBadgeBrowser: 'Works online',
     read: 'Read',
     edit: 'Edit',
     generate: 'Generate',
@@ -229,7 +229,7 @@ export const en = {
   },
   webgpu: {
     title: 'Compatible mode active',
-    body: 'WebGPU is not available. Text generation uses a slower compatible model.',
+    body: 'StoryBuilder needs an internet connection and a configured OpenAI API key.',
   },
   duplicate: {
     title: 'Duplicate story',
@@ -396,7 +396,7 @@ export const en = {
       'Guest stories stay in this browser session only. Sign in to save securely in the cloud and share links.',
     troubleTitle: 'If generation cannot start',
     troubleBody:
-      'StoryBuilder needs a supported browser. If WebGPU or the local model is unavailable, generation may be slower or blocked — try Chrome or Edge, wait for the model to finish loading, then retry.',
+      'StoryBuilder needs an internet connection. Check that you are online and that OpenAI is configured for this deployment, then retry.',
   },
   share: {
     title: 'Share story',

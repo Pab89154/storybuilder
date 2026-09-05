@@ -17,8 +17,6 @@ services:
     envVars:
       - key: VITE_BASE_PATH
         value: /
-      - key: VITE_MODELS_BASE_URL
-        value: /models
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY

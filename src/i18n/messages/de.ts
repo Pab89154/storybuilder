@@ -16,7 +16,7 @@ export const de = {
     titleText: 'Textmodell wird heruntergeladen',
     textModel: 'Textmodell',
     preparing: 'Wird vorbereitet…',
-    webgpuFallback: 'WebGPU nicht erkannt. Kompatibilitätsmodus (langsamer).',
+    webgpuFallback: 'Internetverbindung erforderlich.',
   },
   sidebar: {
     libraryCollapsed: 'Geschichtenbibliothek (eingeklappt)',
@@ -229,7 +229,7 @@ export const de = {
   },
   webgpu: {
     title: 'Kompatibilitätsmodus aktiv',
-    body: 'WebGPU ist nicht verfügbar. Die Textgenerierung nutzt ein langsameres kompatibles Modell.',
+    body: 'StoryBuilder braucht Internet und einen konfigurierten OpenAI-API-Schlüssel.',
   },
   duplicate: {
     title: 'Geschichte duplizieren',
@@ -395,6 +395,6 @@ export const de = {
       'Gastgeschichten bleiben nur in dieser Browser-Sitzung. Melde dich an, um sicher in der Cloud zu speichern und Links zu teilen.',
     troubleTitle: 'Wenn die Generierung nicht startet',
     troubleBody:
-      'StoryBuilder braucht einen unterstützten Browser. Fehlt WebGPU oder das lokale Modell, kann die Generierung langsamer oder blockiert sein — versuche Chrome oder Edge, warte auf den Modell-Download und versuche es erneut.',
+      'StoryBuilder braucht eine Internetverbindung. Prüfe, dass du online bist und OpenAI konfiguriert ist, und versuche es erneut.',
   },
 } as const

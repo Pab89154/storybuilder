@@ -1,156 +1,19 @@
-import type { MLCEngine } from '@mlc-ai/web-llm'
-import { buildMlcAppConfig } from '@/lib/models/mlcAppConfig'
-import { PRIMARY_MODEL_ID, type Language } from '@/types/story'
+import type { Language } from '@/types/story'
 import { buildAntiRefusalReminder } from '@/lib/llm/promptLocale'
 import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
-import type { ChatEngine, LoadProgress, ModelTier } from '@/lib/llm/chatTypes'
+import type { ChatEngine, LoadProgress } from '@/lib/llm/chatTypes'
 import { createOpenAIEngine, isOpenAIConfigured } from '@/lib/llm/openaiEngine'
 
-export type { ChatEngine, LoadProgress, ModelTier, LlmBackend } from '@/lib/llm/chatTypes'
+export type { ChatEngine, LoadProgress, LlmBackend } from '@/lib/llm/chatTypes'
+export { isOpenAIConfigured } from '@/lib/llm/openaiEngine'
+
+export const OPENAI_MODEL_ID = 'gpt-4o-mini'
 
 let engineInstance: ChatEngine | null = null
 let initPromise: Promise<ChatEngine> | null = null
 
-export async function detectWebGPU(): Promise<boolean> {
-  if (!('gpu' in navigator) || !navigator.gpu) return false
-  try {
-    const adapter = await navigator.gpu.requestAdapter()
-    return adapter !== null
-  } catch {
-    return false
-  }
-}
-
-export function getModelIdForTier(tier: ModelTier): string {
-  void tier
-  if (isOpenAIConfigured()) {
-    return 'gpt-4o-mini'
-  }
-  return PRIMARY_MODEL_ID
-}
-
-function wrapWebLLMEngine(mlc: MLCEngine, modelId: string): ChatEngine {
-  return {
-    backend: 'webllm',
-    modelId,
-    async interruptGenerate() {
-      try {
-        await mlc.interruptGenerate()
-      } catch {
-        /* ignore */
-      }
-    },
-    async completeText(systemPrompt, userPrompt, maxTokens = 1024, temperature = 0.3) {
-      const response = await mlc.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-        stream: false,
-      })
-      const content = response.choices[0]?.message?.content
-      return typeof content === 'string' ? content.trim() : ''
-    },
-    async streamCompletion(
-      systemPrompt,
-      userPrompt,
-      onToken,
-      signal,
-      temperature = 0.8,
-      maxTokens = 512,
-    ) {
-      if (signal?.aborted) {
-        await mlc.interruptGenerate()
-        throw new DOMException('Generation aborted', 'AbortError')
-      }
-
-      const chunks = await mlc.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-        stream: true,
-        stream_options: { include_usage: false },
-      })
-
-      const onAbort = () => {
-        void mlc.interruptGenerate()
-      }
-      if (signal) {
-        if (signal.aborted) onAbort()
-        else signal.addEventListener('abort', onAbort, { once: true })
-      }
-
-      const abortRace = signal
-        ? signal.aborted
-          ? Promise.reject<never>(new DOMException('Generation aborted', 'AbortError'))
-          : new Promise<never>((_, reject) => {
-              signal.addEventListener(
-                'abort',
-                () => reject(new DOMException('Generation aborted', 'AbortError')),
-                { once: true },
-              )
-            })
-        : null
-
-      const consumeStream = async (): Promise<string> => {
-        let fullText = ''
-        for await (const chunk of chunks) {
-          if (signal?.aborted) {
-            await mlc.interruptGenerate()
-            throw new DOMException('Generation aborted', 'AbortError')
-          }
-          const delta = chunk.choices[0]?.delta?.content ?? ''
-          if (delta) {
-            fullText += delta
-            onToken(delta)
-          }
-        }
-        return fullText.trim()
-      }
-
-      try {
-        if (abortRace) return await Promise.race([consumeStream(), abortRace])
-        return await consumeStream()
-      } finally {
-        signal?.removeEventListener('abort', onAbort)
-      }
-    },
-  }
-}
-
-async function initWebLLMEngine(
-  onProgress?: (report: LoadProgress) => void,
-): Promise<ChatEngine> {
-  const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
-  const modelId = PRIMARY_MODEL_ID
-  const appConfig = buildMlcAppConfig()
-  const engineOptions = {
-    initProgressCallback: (report: { progress: number; text: string }) => {
-      onProgress?.(report)
-    },
-  }
-
-  let mlc: MLCEngine
-  try {
-    mlc = await CreateMLCEngine(modelId, {
-      ...engineOptions,
-      ...(appConfig ? { appConfig } : {}),
-    })
-  } catch (localError) {
-    if (!appConfig) throw localError
-    console.warn(
-      '[mlc] Local text weights missing under /models/mlc/ — falling back to default CDN.',
-      localError,
-    )
-    mlc = await CreateMLCEngine(modelId, engineOptions)
-  }
-
-  return wrapWebLLMEngine(mlc, modelId)
+export function getModelId(): string {
+  return OPENAI_MODEL_ID
 }
 
 export async function initEngine(
@@ -158,55 +21,49 @@ export async function initEngine(
 ): Promise<{
   engine: ChatEngine
   modelId: string
-  tier: ModelTier
-  hasWebGPU: boolean
   backend: ChatEngine['backend']
 }> {
   if (engineInstance) {
-    const hasWebGPU = await detectWebGPU()
     return {
       engine: engineInstance,
       modelId: engineInstance.modelId,
-      tier: 'primary',
-      hasWebGPU,
       backend: engineInstance.backend,
     }
   }
 
   if (initPromise) {
     const engine = await initPromise
-    const hasWebGPU = await detectWebGPU()
     return {
       engine,
       modelId: engine.modelId,
-      tier: 'primary',
-      hasWebGPU,
       backend: engine.backend,
     }
   }
 
   initPromise = (async () => {
-    if (isOpenAIConfigured()) {
-      onProgress?.({ progress: 0.5, text: 'Connecting to OpenAI…' })
-      const engine = createOpenAIEngine()
-      onProgress?.({ progress: 1, text: `Ready (${engine.modelId})` })
-      engineInstance = engine
-      return engine
+    if (!isOpenAIConfigured()) {
+      throw new Error(
+        'OpenAI API key is missing. Set VITE_OPENAI_API_KEY and rebuild. StoryBuilder requires an online connection.',
+      )
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new Error(
+        'You are offline. StoryBuilder needs an internet connection to generate stories.',
+      )
     }
 
-    const engine = await initWebLLMEngine(onProgress)
+    onProgress?.({ progress: 0.4, text: 'Connecting to OpenAI…' })
+    const engine = createOpenAIEngine()
+    onProgress?.({ progress: 1, text: `Ready (${engine.modelId})` })
     engineInstance = engine
     return engine
   })()
 
   try {
     const engine = await initPromise
-    const hasWebGPU = await detectWebGPU()
     return {
       engine,
       modelId: engine.modelId,
-      tier: 'primary',
-      hasWebGPU,
       backend: engine.backend,
     }
   } catch (error) {
@@ -246,10 +103,6 @@ export async function streamCompletion(
   return engine.streamCompletion(systemPrompt, userPrompt, onToken, signal, temperature)
 }
 
-/**
- * Streams a story chunk while guarding against spurious model refusals.
- * Retries matter most for tiny local models; OpenAI rarely needs them.
- */
 export async function streamStoryCompletion(
   engine: ChatEngine,
   systemPrompt: string,
@@ -264,10 +117,7 @@ export async function streamStoryCompletion(
   },
 ): Promise<string> {
   const baseTemperature = options.temperature ?? 0.8
-  const maxAttempts = Math.max(
-    1,
-    options.maxAttempts ?? (engine.backend === 'openai' ? 2 : 3),
-  )
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 2)
   let salvaged = ''
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

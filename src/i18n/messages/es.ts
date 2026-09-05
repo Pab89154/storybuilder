@@ -16,7 +16,7 @@ export const es = {
     titleText: 'Descargando modelo de texto',
     textModel: 'Modelo de texto',
     preparing: 'Preparando…',
-    webgpuFallback: 'WebGPU no detectado. Modo compatible (más lento).',
+    webgpuFallback: 'Se necesita conexión a internet.',
   },
   sidebar: {
     libraryCollapsed: 'Biblioteca de cuentos (contraída)',
@@ -229,7 +229,7 @@ export const es = {
   },
   webgpu: {
     title: 'Modo compatible activo',
-    body: 'WebGPU no está disponible. El modelo de texto usa un modo compatible más lento.',
+    body: 'StoryBuilder necesita internet y una clave de OpenAI configurada.',
   },
   duplicate: {
     title: 'Duplicar cuento',
@@ -394,7 +394,7 @@ export const es = {
       'Los cuentos de invitado solo permanecen en esta sesión del navegador. Inicia sesión para guardar en la nube y compartir enlaces.',
     troubleTitle: 'Si no se puede generar',
     troubleBody:
-      'StoryBuilder necesita un navegador compatible. Si WebGPU o el modelo local no están disponibles, la generación puede ser más lenta o fallar: prueba Chrome o Edge, espera a que cargue el modelo y vuelve a intentar.',
+      'StoryBuilder necesita conexión a internet. Comprueba que estés en línea y que OpenAI esté configurado, luego reintenta.',
   },
   share: {
     title: 'Compartir cuento',

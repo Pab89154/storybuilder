@@ -1,18 +1,16 @@
 import { create } from 'zustand'
 import type { Character, Chapter, Folder, Paragraph, Story, StoryWithDetails } from '@/types/story'
 import type { FolderFilter, LanguageFilter } from '@/types/story'
-import type { LoadProgress, ModelTier } from '@/lib/llm/engine'
+import type { LoadProgress } from '@/lib/llm/engine'
 import { countParagraphsWords } from '@/lib/wordCount'
 
 interface LLMState {
   status: 'idle' | 'loading' | 'ready' | 'error'
   modelId: string | null
-  tier: ModelTier | null
-  hasWebGPU: boolean
   progress: LoadProgress | null
   error: string | null
   setLoading: (progress: LoadProgress | null) => void
-  setReady: (modelId: string, tier: ModelTier, hasWebGPU: boolean) => void
+  setReady: (modelId: string) => void
   setError: (error: string) => void
   reset: () => void
 }
@@ -73,20 +71,15 @@ function activeStoryWordCount(state: {
 export const useLLMStore = create<LLMState>((set) => ({
   status: 'idle',
   modelId: null,
-  tier: null,
-  hasWebGPU: false,
   progress: null,
   error: null,
   setLoading: (progress) => set({ status: 'loading', progress, error: null }),
-  setReady: (modelId, tier, hasWebGPU) =>
-    set({ status: 'ready', modelId, tier, hasWebGPU, progress: null, error: null }),
+  setReady: (modelId) => set({ status: 'ready', modelId, progress: null, error: null }),
   setError: (error) => set({ status: 'error', error, progress: null }),
   reset: () =>
     set({
       status: 'idle',
       modelId: null,
-      tier: null,
-      hasWebGPU: false,
       progress: null,
       error: null,
     }),

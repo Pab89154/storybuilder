@@ -16,7 +16,7 @@ export const zh = {
     titleText: '正在下载文本模型',
     textModel: '文本模型',
     preparing: '准备中…',
-    webgpuFallback: '未检测到 WebGPU。兼容模式（较慢）。',
+    webgpuFallback: '需要联网。',
   },
   sidebar: {
     libraryCollapsed: '故事库（已收起）',
@@ -224,7 +224,7 @@ export const zh = {
   },
   webgpu: {
     title: '兼容模式已启用',
-    body: 'WebGPU 不可用。文本生成使用较慢的兼容模型。',
+    body: 'StoryBuilder 需要联网并配置 OpenAI API 密钥。',
   },
   duplicate: {
     title: '复制故事',
@@ -376,6 +376,6 @@ export const zh = {
     step8Title: '8. 隐私与保存',
     step8Body: '访客故事仅保存在当前浏览器会话中。登录后可安全云端保存并分享链接。',
     troubleTitle: '如果无法开始生成',
-    troubleBody: 'StoryBuilder 需要受支持的浏览器。若 WebGPU 或本地模型不可用，生成可能变慢或失败——请尝试 Chrome 或 Edge，等待模型加载完成后再重试。',
+    troubleBody: 'StoryBuilder 需要联网。请确认已连接互联网且已配置 OpenAI，然后重试。',
   },
 } as const

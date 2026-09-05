@@ -1,6 +1,6 @@
 # StoryBuilder
 
-Browser-based story generator for children (up to 12 years). Runs **100% in the browser** with no backend — AI inference powered by [WebLLM](https://webllm.mlc.ai/) and local storage via IndexedDB.
+Browser-based story generator for children (up to 12 years). Stories are generated online via the OpenAI API; guest data stays in the browser (IndexedDB) and signed-in stories sync with Supabase.
 
 The interface is available in **English**, **Spanish**, **Mandarin Chinese**, **Arabic**, **French**, and **German**.
 
@@ -17,9 +17,8 @@ The interface is available in **English**, **Spanish**, **Mandarin Chinese**, **
 ## Requirements
 
 - **Node.js 20+**
-- **Chrome 113+** or **Edge 113+** (recommended for WebGPU)
-- ~**500 MB** free disk/browser cache for the AI model (one-time download)
-- Stable internet connection for the **first visit only** (model download)
+- Modern desktop or mobile browser with **internet access**
+- `VITE_OPENAI_API_KEY` set for local and production builds
 
 ## Quick start
 
@@ -49,37 +48,23 @@ Then open the Network URL shown in the terminal (e.g. `http://192.168.x.x:5173`)
 
 ## AI model
 
-| Model | Size |
-|-------|------|
-| **Qwen2.5-0.5B-Instruct** | ~500 MB |
-
-The first load shows a download progress bar. The model is cached by the browser for future visits.
-
-WebGPU is used when available for faster inference; the same model runs without it.
-
-### Check WebGPU
-
-Open `chrome://gpu` in Chrome and confirm **WebGPU** is enabled. For best quality and speed, use a browser with WebGPU support.
+Story generation uses **OpenAI** (`gpt-4o-mini`) over the network. There is no local/offline model.
 
 ## Data & privacy
 
-- Stories, characters, and paragraphs are stored in **IndexedDB** on your device
-- AI runs locally after the model is downloaded — prompts are not sent to any server
-- Data is **not synced** across browsers or devices
-- Clearing browser data will delete your stories
-
-## Quality expectations
-
-The in-browser 0.5B model is lighter on phones and produces good children's stories but will **not match cloud GPT-4 quality**. Use Chrome/Edge with WebGPU for the best speed.
+- Guest stories stay in **IndexedDB** on your device
+- Signed-in stories sync with **Supabase** (encrypted)
+- Story prompts are sent to OpenAI to generate text
+- Clearing browser data deletes guest stories on that device
 
 ## Project structure
 
 ```
 src/
-├── components/     # UI (layout, story, model)
+├── components/     # UI (layout, story)
 ├── db/             # Dexie / IndexedDB
 ├── hooks/          # useStories, useLLM, useGeneration
-├── lib/llm/        # WebLLM engine, prompts, generation
+├── lib/llm/        # OpenAI engine, prompts, generation
 ├── lib/export/     # TXT export
 ├── store/          # Zustand state
 └── types/          # TypeScript types

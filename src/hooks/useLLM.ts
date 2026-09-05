@@ -1,6 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { detectWebGPU, initEngine, type LoadProgress } from '@/lib/llm/engine'
-import { isOpenAIConfigured } from '@/lib/llm/openaiEngine'
+import { initEngine, type LoadProgress } from '@/lib/llm/engine'
 import { ensureLLMAutoInit } from '@/lib/llm/llmBootstrap'
 import { useLLMStore } from '@/store/storyStore'
 
@@ -17,32 +16,20 @@ async function loadModelOnce(): Promise<void> {
   const { status, setLoading, setReady, setError } = useLLMStore.getState()
   if (status === 'ready' || status === 'loading') return
 
-  // On phones without WebGPU, skip eager local-model download — it freezes typing.
-  // OpenAI (when configured) is still fine to init immediately.
-  if (!isOpenAIConfigured()) {
-    const hasWebGPU = await detectWebGPU()
-    if (!hasWebGPU) {
-      setError(
-        'This device needs an online AI key (OpenAI) or a browser with WebGPU to generate stories.',
-      )
-      return
-    }
-  }
-
   setLoading(null)
   try {
     const result = await initEngine((report) => {
       throttledSetLoading(report)
     })
-    setReady(result.modelId, result.tier, result.hasWebGPU)
+    setReady(result.modelId)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to load model'
+    const message = err instanceof Error ? err.message : 'Failed to connect to OpenAI'
     setError(message)
   }
 }
 
 export function useLLM() {
-  const { status, modelId, tier, hasWebGPU, progress, error } = useLLMStore()
+  const { status, modelId, progress, error } = useLLMStore()
 
   const loadModel = useCallback(() => loadModelOnce(), [])
 
@@ -53,8 +40,6 @@ export function useLLM() {
   return {
     status,
     modelId,
-    tier,
-    hasWebGPU,
     progress,
     error,
     loadModel,
