@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react'
-import { initEngine, type LoadProgress } from '@/lib/llm/engine'
+import { detectWebGPU, initEngine, type LoadProgress } from '@/lib/llm/engine'
+import { isOpenAIConfigured } from '@/lib/llm/openaiEngine'
 import { ensureLLMAutoInit } from '@/lib/llm/llmBootstrap'
 import { useLLMStore } from '@/store/storyStore'
 
@@ -15,6 +16,18 @@ function throttledSetLoading(progress: LoadProgress | null) {
 async function loadModelOnce(): Promise<void> {
   const { status, setLoading, setReady, setError } = useLLMStore.getState()
   if (status === 'ready' || status === 'loading') return
+
+  // On phones without WebGPU, skip eager local-model download — it freezes typing.
+  // OpenAI (when configured) is still fine to init immediately.
+  if (!isOpenAIConfigured()) {
+    const hasWebGPU = await detectWebGPU()
+    if (!hasWebGPU) {
+      setError(
+        'This device needs an online AI key (OpenAI) or a browser with WebGPU to generate stories.',
+      )
+      return
+    }
+  }
 
   setLoading(null)
   try {

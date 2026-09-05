@@ -289,7 +289,7 @@ export function StoryWorkspace() {
             onChange={(e) => void saveStoryMeta({ genre: e.target.value })}
             placeholder={t('workspace.genre')}
             aria-label={t('workspace.genre')}
-            className="h-9 min-w-[5rem] flex-1 text-xs sm:h-8 sm:w-28 sm:flex-none"
+            className="h-9 min-w-[5rem] flex-1 text-base sm:h-8 sm:w-28 sm:flex-none sm:text-xs"
           />
           <datalist id="genre-suggestions">
             {GENRE_I18N_KEYS.map((key) => (

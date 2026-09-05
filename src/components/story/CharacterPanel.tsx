@@ -23,7 +23,8 @@ import {
 import { cn } from '@/lib/utils'
 import type { Character, CharacterAlignment, CharacterGender, Language } from '@/types/story'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useStoryStore } from '@/store/storyStore'
 
 function CharacterFieldRow({
   label,
@@ -177,7 +178,7 @@ function CharacterCard({
                 }
               }}
               placeholder={t('characters.namePlaceholder')}
-              className={cn('min-w-0 flex-1 font-medium', compact && 'h-8 text-xs')}
+              className={cn('min-w-0 flex-1 font-medium', compact && 'h-8 text-base sm:text-xs')}
             />
             <Button
               variant="ghost"
@@ -207,7 +208,7 @@ function CharacterCard({
           <CharacterFieldRow label={t('characters.nickname')} compact={compact}>
             <InputWithMic
               language={language}
-              className={cn('w-full', compact && 'h-8 text-xs')}
+              className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
               value={character.nickname ?? ''}
               onChange={(e) => void onUpdate({ nickname: e.target.value })}
               placeholder={t('characters.nicknamePlaceholder')}
@@ -220,7 +221,7 @@ function CharacterCard({
           >
             <TextareaWithMic
               language={language}
-              className={cn('min-h-[4.5rem] w-full resize-y text-sm', compact && 'min-h-[3.5rem] text-xs')}
+              className={cn('min-h-[4.5rem] w-full resize-y text-base sm:text-sm', compact && 'min-h-[3.5rem]')}
               value={character.description ?? ''}
               onChange={(e) => void onUpdate({ description: e.target.value })}
               placeholder={t('characters.descriptionPlaceholder')}
@@ -234,7 +235,7 @@ function CharacterCard({
                 void onUpdate({ alignment: value })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -248,7 +249,7 @@ function CharacterCard({
               value={character.gender}
               onValueChange={(value: CharacterGender) => void onUpdate({ gender: value })}
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +260,7 @@ function CharacterCard({
           </CharacterFieldRow>
           <CharacterFieldRow label={t('characters.age')} compact={compact}>
             <Input
-              className={cn('w-full', compact && 'h-8 text-xs')}
+              className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
               type="number"
               min={1}
               max={99}
@@ -279,7 +280,7 @@ function CharacterCard({
                 })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -295,7 +296,7 @@ function CharacterCard({
                 void onUpdate({ hasSuperpowers: value === 'yes' })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -309,7 +310,7 @@ function CharacterCard({
             <CharacterFieldRow label={t('characters.species')} compact={compact}>
               <InputWithMic
                 language={language}
-                className={cn('w-full', compact && 'h-8 text-xs')}
+                className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                 value={character.species ?? ''}
                 onChange={(e) => void onUpdate({ species: e.target.value })}
                 placeholder={t('characters.speciesPlaceholder')}
@@ -321,7 +322,7 @@ function CharacterCard({
             <CharacterFieldRow label={t('characters.powers')} compact={compact}>
               <InputWithMic
                 language={language}
-                className={cn('w-full', compact && 'h-8 text-xs')}
+                className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                 value={character.superpowerDescription ?? ''}
                 onChange={(e) =>
                   void onUpdate({ superpowerDescription: e.target.value })
@@ -345,7 +346,7 @@ function CharacterCard({
                 })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -360,7 +361,7 @@ function CharacterCard({
               <CharacterFieldRow label={t('characters.petName')} compact={compact}>
                 <InputWithMic
                   language={language}
-                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                   value={character.petName ?? ''}
                   onChange={(e) => void onUpdate({ petName: e.target.value })}
                   placeholder={t('characters.petNamePlaceholder')}
@@ -369,7 +370,7 @@ function CharacterCard({
               <CharacterFieldRow label={t('characters.petSpecies')} compact={compact}>
                 <InputWithMic
                   language={language}
-                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                   value={character.petSpecies ?? ''}
                   onChange={(e) => void onUpdate({ petSpecies: e.target.value })}
                   placeholder={t('characters.petSpeciesPlaceholder')}
@@ -386,7 +387,7 @@ function CharacterCard({
                     })
                   }
                 >
-                  <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+                  <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -399,7 +400,7 @@ function CharacterCard({
                 <CharacterFieldRow label={t('characters.petPowers')} compact={compact}>
                   <InputWithMic
                     language={language}
-                    className={cn('w-full', compact && 'h-8 text-xs')}
+                    className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                     value={character.petSuperpowerDescription ?? ''}
                     onChange={(e) =>
                       void onUpdate({ petSuperpowerDescription: e.target.value })
@@ -423,7 +424,7 @@ function CharacterCard({
                 })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8 text-xs')}>
+              <SelectTrigger className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -438,7 +439,7 @@ function CharacterCard({
               <CharacterFieldRow label={t('characters.vehicleType')} compact={compact}>
                 <InputWithMic
                   language={language}
-                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                   value={character.vehicleType ?? ''}
                   onChange={(e) => void onUpdate({ vehicleType: e.target.value })}
                   placeholder={t('characters.vehicleTypePlaceholder')}
@@ -447,7 +448,7 @@ function CharacterCard({
               <CharacterFieldRow label={t('characters.vehicleColor')} compact={compact}>
                 <InputWithMic
                   language={language}
-                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                   value={character.vehicleColor ?? ''}
                   onChange={(e) => void onUpdate({ vehicleColor: e.target.value })}
                   placeholder={t('characters.vehicleColorPlaceholder')}
@@ -456,7 +457,7 @@ function CharacterCard({
               <CharacterFieldRow label={t('characters.vehicleSpeed')} compact={compact}>
                 <InputWithMic
                   language={language}
-                  className={cn('w-full', compact && 'h-8 text-xs')}
+                  className={cn('w-full', compact && 'h-8 text-base sm:text-xs')}
                   value={character.vehicleSpeed ?? ''}
                   onChange={(e) => void onUpdate({ vehicleSpeed: e.target.value })}
                   placeholder={t('characters.vehicleSpeedPlaceholder')}
@@ -507,10 +508,55 @@ export function CharacterPanel({
 }) {
   const t = useUiT()
   const { activeStory, loadStory } = useStories()
+  const updateActiveCharacters = useStoryStore((s) => s.updateActiveCharacters)
+  const pendingUpdatesRef = useRef<
+    Map<string, Partial<Omit<Character, 'id' | 'storyId'>>>
+  >(new Map())
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const storyIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    storyIdRef.current = activeStory?.id ?? null
+  }, [activeStory?.id])
+
+  useEffect(() => {
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current)
+    }
+  }, [])
 
   if (!activeStory) return null
 
+  const flushCharacterUpdates = async () => {
+    const storyId = storyIdRef.current
+    const pending = pendingUpdatesRef.current
+    if (!storyId || pending.size === 0) return
+
+    const entries = [...pending.entries()]
+    pending.clear()
+
+    try {
+      await Promise.all(
+        entries.map(([characterId, updates]) => updateCharacter(characterId, updates)),
+      )
+      if (useStoryStore.getState().activeStoryId === storyId) {
+        await loadStory(storyId, { onlyIfStillActive: true })
+      }
+    } catch (error) {
+      console.warn('[characters] Failed to persist updates', error)
+      // Reload so UI matches durable state if a write failed.
+      if (useStoryStore.getState().activeStoryId === storyId) {
+        await loadStory(storyId, { onlyIfStillActive: true }).catch(() => undefined)
+      }
+    }
+  }
+
   const handleAdd = async () => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current)
+      persistTimerRef.current = null
+      await flushCharacterUpdates()
+    }
     await addCharacter(activeStory.id, {
       ...emptyCharacter,
       name: '',
@@ -518,15 +564,35 @@ export function CharacterPanel({
     await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
 
-  const handleUpdate = async (
+  const handleUpdate = (
     characterId: string,
     updates: Partial<Omit<Character, 'id' | 'storyId'>>,
   ) => {
-    await updateCharacter(characterId, updates)
-    await loadStory(activeStory.id, { onlyIfStillActive: true })
+    const characters = useStoryStore.getState().activeStory?.characters
+    if (!characters) return
+
+    updateActiveCharacters(
+      characters.map((character) =>
+        character.id === characterId ? { ...character, ...updates } : character,
+      ),
+    )
+
+    const existing = pendingUpdatesRef.current.get(characterId) ?? {}
+    pendingUpdatesRef.current.set(characterId, { ...existing, ...updates })
+
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current)
+    persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null
+      void flushCharacterUpdates()
+    }, 450)
   }
 
   const handleRandomize = async (characterId: string) => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current)
+      persistTimerRef.current = null
+      await flushCharacterUpdates()
+    }
     const existingNames = activeStory.characters
       .filter((character) => character.id !== characterId)
       .map((character) => character.name)
@@ -538,6 +604,12 @@ export function CharacterPanel({
   }
 
   const handleDelete = async (characterId: string) => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current)
+      persistTimerRef.current = null
+      await flushCharacterUpdates()
+    }
+    pendingUpdatesRef.current.delete(characterId)
     await deleteCharacter(characterId)
     await loadStory(activeStory.id, { onlyIfStillActive: true })
   }
