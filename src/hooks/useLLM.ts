@@ -1,12 +1,11 @@
 import { useCallback, useEffect } from 'react'
-import type { InitProgressReport } from '@mlc-ai/web-llm'
-import { initEngine } from '@/lib/llm/engine'
+import { initEngine, type LoadProgress } from '@/lib/llm/engine'
 import { ensureLLMAutoInit } from '@/lib/llm/llmBootstrap'
 import { useLLMStore } from '@/store/storyStore'
 
 let lastProgressUpdateAt = 0
 
-function throttledSetLoading(progress: InitProgressReport | null) {
+function throttledSetLoading(progress: LoadProgress | null) {
   const now = Date.now()
   if (progress && now - lastProgressUpdateAt < 500) return
   lastProgressUpdateAt = now

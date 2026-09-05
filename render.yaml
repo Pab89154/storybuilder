@@ -1,0 +1,27 @@
+# StoryBuilder on Render (static SPA) → https://storybuilder.pw
+# Blueprint: https://dashboard.render.com/blueprint/new?repo=https://github.com/Pab89154/storybuilder
+services:
+  - type: web
+    name: storybuilder
+    runtime: static
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    domains:
+      - storybuilder.pw
+      - www.storybuilder.pw
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BASE_PATH
+        value: /
+      - key: VITE_MODELS_BASE_URL
+        value: /models
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_OPENAI_API_KEY
+        sync: false

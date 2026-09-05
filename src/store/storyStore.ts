@@ -1,8 +1,7 @@
 import { create } from 'zustand'
-import type { InitProgressReport } from '@mlc-ai/web-llm'
 import type { Character, Chapter, Folder, Paragraph, Story, StoryWithDetails } from '@/types/story'
 import type { FolderFilter, LanguageFilter } from '@/types/story'
-import type { ModelTier } from '@/lib/llm/engine'
+import type { LoadProgress, ModelTier } from '@/lib/llm/engine'
 import { countParagraphsWords } from '@/lib/wordCount'
 
 interface LLMState {
@@ -10,9 +9,9 @@ interface LLMState {
   modelId: string | null
   tier: ModelTier | null
   hasWebGPU: boolean
-  progress: InitProgressReport | null
+  progress: LoadProgress | null
   error: string | null
-  setLoading: (progress: InitProgressReport | null) => void
+  setLoading: (progress: LoadProgress | null) => void
   setReady: (modelId: string, tier: ModelTier, hasWebGPU: boolean) => void
   setError: (error: string) => void
   reset: () => void

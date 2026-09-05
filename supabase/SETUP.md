@@ -18,10 +18,12 @@ Recommended in **Authentication → Providers → Email**:
 
 In **Authentication → URL Configuration**:
 
-- Set **Site URL** to your GitHub Pages URL (or `http://localhost:5173` for local dev)
+- Set **Site URL** to `https://storybuilder.pw/` (or `http://localhost:5173` for local dev)
 - Add redirect URLs:
   - `http://localhost:5173/**`
-  - `https://<your-github-username>.github.io/<repo-name>/**`
+  - `https://storybuilder.pw/**`
+  - `https://www.storybuilder.pw/**`
+  - `https://<your-github-username>.github.io/<repo-name>/**` (optional)
 
 ## 3. Environment variables
 

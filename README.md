@@ -132,16 +132,40 @@ use a Supabase `service_role` or secret key in either browser-facing variable.
 
 Add these so password-reset links work:
 
-- **Site URL:** `https://pab89154.github.io/storybuilder/` (or your production origin)
+- **Site URL:** `https://storybuilder.pw/`
 - **Redirect URLs:**
   - `http://localhost:5173/**`
   - `http://localhost:5175/**`
-  - `https://pab89154.github.io/storybuilder/**`
+  - `https://storybuilder.pw/**`
+  - `https://storybuilder.pw/reset-password`
+  - `https://www.storybuilder.pw/**`
+  - `https://pab89154.github.io/storybuilder/**` (optional while Pages still runs)
   - `https://pab89154.github.io/storybuilder/reset-password`
 
-The production build copies `index.html` to `404.html` so deep links like `/reset-password` work on GitHub Pages.
+The production build copies `index.html` to `404.html` so deep links like `/reset-password` work on GitHub Pages. Render uses an SPA rewrite instead (`render.yaml`).
 
 ### Supabase Dashboard → Authentication → Providers → Email
 
 Turn **Confirm email** off. Sign-up then returns a session immediately, so new
 users go straight into the app without checking their inbox.
+
+### Deploy on Render + custom domain
+
+StoryBuilder is a static Vite SPA. Use the Blueprint in `render.yaml`:
+
+1. Push `render.yaml` to `main`, then open
+   [Blueprint deploy](https://dashboard.render.com/blueprint/new?repo=https://github.com/Pab89154/storybuilder).
+2. Set secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same values as GitHub Pages).
+   Keep `VITE_BASE_PATH=/` for `storybuilder.pw` (root hosting — not `/storybuilder/`).
+3. After the service is live, note its `*.onrender.com` hostname.
+4. In Render → **Settings → Custom Domains**, confirm `storybuilder.pw` and
+   `www.storybuilder.pw` (declared in the Blueprint; DNS still required).
+5. At your DNS provider:
+
+| Host | Type | Value |
+|------|------|--------|
+| `@` (apex) | A (or ALIAS/ANAME) | Render’s apex target from the Dashboard |
+| `www` | CNAME | `<your-service>.onrender.com` |
+
+If DNS is on Cloudflare, you can CNAME-flatten `@` to `<your-service>.onrender.com`.
+Remove any `AAAA` records for the domain. Then click **Verify** in Render and wait for TLS.

@@ -1,6 +1,6 @@
 let autoInitStarted = false
 
-/** Starts downloading the AI model once per session when the app opens. */
+/** Starts the AI backend once per session (OpenAI if configured, else local WebLLM). */
 export function ensureLLMAutoInit(loadModel: () => Promise<void>): void {
   if (autoInitStarted) return
   autoInitStarted = true

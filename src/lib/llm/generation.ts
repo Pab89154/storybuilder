@@ -1,4 +1,4 @@
-import type { MLCEngine } from '@mlc-ai/web-llm'
+import type { ChatEngine } from '@/lib/llm/chatTypes'
 import {
   addParagraph,
   deleteParagraph,
@@ -58,7 +58,7 @@ async function persistStreamingParagraph(
 }
 
 export async function generateStoryFromScratch(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   callbacks: GenerationCallbacks,
@@ -156,7 +156,7 @@ export async function generateStoryFromScratch(
 }
 
 export async function continueStory(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   existingParagraphs: Paragraph[],
@@ -224,7 +224,7 @@ export async function continueStory(
 }
 
 export async function regenerateParagraph(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   paragraphs: Paragraph[],

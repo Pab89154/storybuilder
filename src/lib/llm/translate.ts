@@ -1,4 +1,4 @@
-import type { MLCEngine } from '@mlc-ai/web-llm'
+import type { ChatEngine } from '@/lib/llm/chatTypes'
 import { completeText } from '@/lib/llm/engine'
 import { buildAntiRefusalReminder, buildTranslationSystemPrompt } from '@/lib/llm/promptLocale'
 import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
@@ -7,7 +7,7 @@ import { LANGUAGE_ENGLISH_NAMES, untitledStoryTitle } from '@/lib/storyLanguageM
 import type { Character, Language, StoryWithDetails } from '@/types/story'
 
 async function translateText(
-  engine: MLCEngine,
+  engine: ChatEngine,
   text: string,
   targetLanguage: Language,
   context?: string,
@@ -45,7 +45,7 @@ async function translateText(
 }
 
 async function translateCharacterListField(
-  engine: MLCEngine,
+  engine: ChatEngine,
   text: string | undefined,
   targetLanguage: Language,
   context: string,
@@ -96,7 +96,7 @@ export interface TranslatedStoryContent {
 }
 
 async function translateCharacterFields(
-  engine: MLCEngine,
+  engine: ChatEngine,
   char: Character,
   targetLanguage: Language,
 ): Promise<Omit<Character, 'id' | 'storyId'>> {
@@ -239,7 +239,7 @@ function copyCharacterFields(char: Character): Omit<Character, 'id' | 'storyId'>
 }
 
 export async function translateStoryContent(
-  engine: MLCEngine,
+  engine: ChatEngine,
   source: StoryWithDetails,
   targetLanguage: Language,
   onProgress?: (progress: DuplicateProgress) => void,
@@ -326,7 +326,7 @@ export async function translateStoryContent(
 }
 
 export async function duplicateStoryWithTranslation(
-  engine: MLCEngine,
+  engine: ChatEngine,
   source: StoryWithDetails,
   targetLanguage: Language,
   onProgress?: (progress: DuplicateProgress) => void,

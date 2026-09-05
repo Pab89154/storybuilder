@@ -1,4 +1,4 @@
-import type { MLCEngine } from '@mlc-ai/web-llm'
+import type { ChatEngine } from '@/lib/llm/chatTypes'
 import {
   addChapter,
   addParagraph,
@@ -60,7 +60,7 @@ function buildPriorChaptersText(
 }
 
 async function createChapterOutline(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   callbacks: GenerationCallbacks,
@@ -117,7 +117,7 @@ async function createChapterOutline(
 }
 
 async function generateChapterContent(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   chapter: Chapter,
@@ -241,7 +241,7 @@ async function generateChapterContent(
 }
 
 export async function generateOrContinueAutomaticBook(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   existingChapters: Chapter[],
@@ -334,7 +334,7 @@ export async function generateOrContinueAutomaticBook(
 export const generateAutomaticBook = generateOrContinueAutomaticBook
 
 export async function generateAdvancedChapter(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   existingChapters: Chapter[],
@@ -401,7 +401,7 @@ export async function generateAdvancedChapter(
 }
 
 export async function continueAdvancedBook(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   existingChapters: Chapter[],
@@ -437,7 +437,7 @@ export async function continueAdvancedBook(
 }
 
 export async function finishAdvancedBook(
-  engine: MLCEngine,
+  engine: ChatEngine,
   story: Story,
   characters: Character[],
   existingChapters: Chapter[],

@@ -1,17 +1,15 @@
-import type { InitProgressReport, MLCEngine } from '@mlc-ai/web-llm'
+import type { MLCEngine } from '@mlc-ai/web-llm'
 import { buildMlcAppConfig } from '@/lib/models/mlcAppConfig'
-import {
-  PRIMARY_MODEL_ID,
-  type Language,
-} from '@/types/story'
+import { PRIMARY_MODEL_ID, type Language } from '@/types/story'
 import { buildAntiRefusalReminder } from '@/lib/llm/promptLocale'
 import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
+import type { ChatEngine, LoadProgress, ModelTier } from '@/lib/llm/chatTypes'
+import { createOpenAIEngine, isOpenAIConfigured } from '@/lib/llm/openaiEngine'
 
-export type ModelTier = 'primary' | 'fallback'
+export type { ChatEngine, LoadProgress, ModelTier, LlmBackend } from '@/lib/llm/chatTypes'
 
-let engineInstance: MLCEngine | null = null
-let currentModelId: string | null = null
-let initPromise: Promise<MLCEngine> | null = null
+let engineInstance: ChatEngine | null = null
+let initPromise: Promise<ChatEngine> | null = null
 
 export async function detectWebGPU(): Promise<boolean> {
   if (!('gpu' in navigator) || !navigator.gpu) return false
@@ -25,19 +23,153 @@ export async function detectWebGPU(): Promise<boolean> {
 
 export function getModelIdForTier(tier: ModelTier): string {
   void tier
+  if (isOpenAIConfigured()) {
+    return 'gpt-4o-mini'
+  }
   return PRIMARY_MODEL_ID
 }
 
+function wrapWebLLMEngine(mlc: MLCEngine, modelId: string): ChatEngine {
+  return {
+    backend: 'webllm',
+    modelId,
+    async interruptGenerate() {
+      try {
+        await mlc.interruptGenerate()
+      } catch {
+        /* ignore */
+      }
+    },
+    async completeText(systemPrompt, userPrompt, maxTokens = 1024, temperature = 0.3) {
+      const response = await mlc.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+        stream: false,
+      })
+      const content = response.choices[0]?.message?.content
+      return typeof content === 'string' ? content.trim() : ''
+    },
+    async streamCompletion(
+      systemPrompt,
+      userPrompt,
+      onToken,
+      signal,
+      temperature = 0.8,
+      maxTokens = 512,
+    ) {
+      if (signal?.aborted) {
+        await mlc.interruptGenerate()
+        throw new DOMException('Generation aborted', 'AbortError')
+      }
+
+      const chunks = await mlc.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+        stream_options: { include_usage: false },
+      })
+
+      const onAbort = () => {
+        void mlc.interruptGenerate()
+      }
+      if (signal) {
+        if (signal.aborted) onAbort()
+        else signal.addEventListener('abort', onAbort, { once: true })
+      }
+
+      const abortRace = signal
+        ? signal.aborted
+          ? Promise.reject<never>(new DOMException('Generation aborted', 'AbortError'))
+          : new Promise<never>((_, reject) => {
+              signal.addEventListener(
+                'abort',
+                () => reject(new DOMException('Generation aborted', 'AbortError')),
+                { once: true },
+              )
+            })
+        : null
+
+      const consumeStream = async (): Promise<string> => {
+        let fullText = ''
+        for await (const chunk of chunks) {
+          if (signal?.aborted) {
+            await mlc.interruptGenerate()
+            throw new DOMException('Generation aborted', 'AbortError')
+          }
+          const delta = chunk.choices[0]?.delta?.content ?? ''
+          if (delta) {
+            fullText += delta
+            onToken(delta)
+          }
+        }
+        return fullText.trim()
+      }
+
+      try {
+        if (abortRace) return await Promise.race([consumeStream(), abortRace])
+        return await consumeStream()
+      } finally {
+        signal?.removeEventListener('abort', onAbort)
+      }
+    },
+  }
+}
+
+async function initWebLLMEngine(
+  onProgress?: (report: LoadProgress) => void,
+): Promise<ChatEngine> {
+  const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
+  const modelId = PRIMARY_MODEL_ID
+  const appConfig = buildMlcAppConfig()
+  const engineOptions = {
+    initProgressCallback: (report: { progress: number; text: string }) => {
+      onProgress?.(report)
+    },
+  }
+
+  let mlc: MLCEngine
+  try {
+    mlc = await CreateMLCEngine(modelId, {
+      ...engineOptions,
+      ...(appConfig ? { appConfig } : {}),
+    })
+  } catch (localError) {
+    if (!appConfig) throw localError
+    console.warn(
+      '[mlc] Local text weights missing under /models/mlc/ — falling back to default CDN.',
+      localError,
+    )
+    mlc = await CreateMLCEngine(modelId, engineOptions)
+  }
+
+  return wrapWebLLMEngine(mlc, modelId)
+}
+
 export async function initEngine(
-  onProgress?: (report: InitProgressReport) => void,
-): Promise<{ engine: MLCEngine; modelId: string; tier: ModelTier; hasWebGPU: boolean }> {
-  if (engineInstance && currentModelId) {
+  onProgress?: (report: LoadProgress) => void,
+): Promise<{
+  engine: ChatEngine
+  modelId: string
+  tier: ModelTier
+  hasWebGPU: boolean
+  backend: ChatEngine['backend']
+}> {
+  if (engineInstance) {
     const hasWebGPU = await detectWebGPU()
     return {
       engine: engineInstance,
-      modelId: currentModelId,
+      modelId: engineInstance.modelId,
       tier: 'primary',
       hasWebGPU,
+      backend: engineInstance.backend,
     }
   }
 
@@ -46,40 +178,24 @@ export async function initEngine(
     const hasWebGPU = await detectWebGPU()
     return {
       engine,
-      modelId: currentModelId!,
+      modelId: engine.modelId,
       tier: 'primary',
       hasWebGPU,
+      backend: engine.backend,
     }
   }
 
   initPromise = (async () => {
-    const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
-    const modelId = PRIMARY_MODEL_ID
-
-    const appConfig = buildMlcAppConfig()
-    const engineOptions = {
-      initProgressCallback: (report: InitProgressReport) => {
-        onProgress?.(report)
-      },
+    if (isOpenAIConfigured()) {
+      onProgress?.({ progress: 0.5, text: 'Connecting to OpenAI…' })
+      const engine = createOpenAIEngine()
+      onProgress?.({ progress: 1, text: `Ready (${engine.modelId})` })
+      engineInstance = engine
+      return engine
     }
 
-    let engine: MLCEngine
-    try {
-      engine = await CreateMLCEngine(modelId, {
-        ...engineOptions,
-        ...(appConfig ? { appConfig } : {}),
-      })
-    } catch (localError) {
-      if (!appConfig) throw localError
-      console.warn(
-        '[mlc] Local text weights missing under /models/mlc/ — falling back to default CDN.',
-        localError,
-      )
-      engine = await CreateMLCEngine(modelId, engineOptions)
-    }
-
+    const engine = await initWebLLMEngine(onProgress)
     engineInstance = engine
-    currentModelId = modelId
     return engine
   })()
 
@@ -88,14 +204,14 @@ export async function initEngine(
     const hasWebGPU = await detectWebGPU()
     return {
       engine,
-      modelId: currentModelId!,
+      modelId: engine.modelId,
       tier: 'primary',
       hasWebGPU,
+      backend: engine.backend,
     }
   } catch (error) {
     initPromise = null
     engineInstance = null
-    currentModelId = null
     throw error
   }
 }
@@ -105,121 +221,37 @@ export async function interruptActiveGeneration(): Promise<void> {
   try {
     await engineInstance.interruptGenerate()
   } catch {
-    /* ignore — engine may already be idle */
+    /* ignore */
   }
 }
 
-function bindStreamAbort(engine: MLCEngine, signal?: AbortSignal): (() => void) | undefined {
-  if (!signal) return undefined
-  const onAbort = () => {
-    void engine.interruptGenerate()
-  }
-  if (signal.aborted) {
-    onAbort()
-    return undefined
-  }
-  signal.addEventListener('abort', onAbort, { once: true })
-  return () => signal.removeEventListener('abort', onAbort)
-}
 export async function completeText(
-  engine: MLCEngine,
+  engine: ChatEngine,
   systemPrompt: string,
   userPrompt: string,
   maxTokens = 1024,
   temperature = 0.3,
 ): Promise<string> {
-  const response = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature,
-    max_tokens: maxTokens,
-    stream: false,
-  })
-
-  const content = response.choices[0]?.message?.content
-  return typeof content === 'string' ? content.trim() : ''
+  return engine.completeText(systemPrompt, userPrompt, maxTokens, temperature)
 }
 
 export async function streamCompletion(
-  engine: MLCEngine,
+  engine: ChatEngine,
   systemPrompt: string,
   userPrompt: string,
   onToken: (token: string) => void,
   signal?: AbortSignal,
   temperature = 0.8,
 ): Promise<string> {
-  if (signal?.aborted) {
-    await engine.interruptGenerate()
-    throw new DOMException('Generation aborted', 'AbortError')
-  }
-
-  const chunks = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature,
-    max_tokens: 512,
-    stream: true,
-    stream_options: { include_usage: false },
-  })
-
-  const unbindAbort = bindStreamAbort(engine, signal)
-
-  const abortRace = signal
-    ? signal.aborted
-      ? Promise.reject<never>(new DOMException('Generation aborted', 'AbortError'))
-      : new Promise<never>((_, reject) => {
-          signal.addEventListener(
-            'abort',
-            () => reject(new DOMException('Generation aborted', 'AbortError')),
-            { once: true },
-          )
-        })
-    : null
-
-  const consumeStream = async (): Promise<string> => {
-    let fullText = ''
-
-    for await (const chunk of chunks) {
-      if (signal?.aborted) {
-        await engine.interruptGenerate()
-        throw new DOMException('Generation aborted', 'AbortError')
-      }
-
-      const delta = chunk.choices[0]?.delta?.content ?? ''
-      if (delta) {
-        fullText += delta
-        onToken(delta)
-      }
-    }
-
-    return fullText.trim()
-  }
-
-  try {
-    if (abortRace) {
-      return await Promise.race([consumeStream(), abortRace])
-    }
-    return await consumeStream()
-  } finally {
-    unbindAbort?.()
-  }
+  return engine.streamCompletion(systemPrompt, userPrompt, onToken, signal, temperature)
 }
 
 /**
  * Streams a story chunk while guarding against spurious model refusals.
- *
- * Small local models occasionally answer a harmless story prompt with a
- * refusal ("I'm sorry, but I can't…"). When that happens we clear the streamed
- * text, escalate the system prompt with a blunt anti-refusal reminder, nudge
- * the temperature up, and retry. If every attempt still refuses, the best
- * salvageable (refusal-stripped) text is returned so the caller can drop it.
+ * Retries matter most for tiny local models; OpenAI rarely needs them.
  */
 export async function streamStoryCompletion(
-  engine: MLCEngine,
+  engine: ChatEngine,
   systemPrompt: string,
   userPrompt: string,
   options: {
@@ -232,7 +264,10 @@ export async function streamStoryCompletion(
   },
 ): Promise<string> {
   const baseTemperature = options.temperature ?? 0.8
-  const maxAttempts = Math.max(1, options.maxAttempts ?? 3)
+  const maxAttempts = Math.max(
+    1,
+    options.maxAttempts ?? (engine.backend === 'openai' ? 2 : 3),
+  )
   let salvaged = ''
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -266,9 +301,8 @@ export async function streamStoryCompletion(
 
 export async function unloadEngine(): Promise<void> {
   if (engineInstance) {
-    await engineInstance.unload()
+    await engineInstance.interruptGenerate()
     engineInstance = null
-    currentModelId = null
     initPromise = null
   }
 }
