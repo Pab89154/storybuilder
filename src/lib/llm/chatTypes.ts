@@ -1,12 +1,12 @@
-export type LlmBackend = 'openai'
+export type LlmBackend = 'gemini'
 
-/** Progress while connecting to OpenAI. */
+/** Progress while connecting to Gemini. */
 export interface LoadProgress {
   progress: number
   text: string
 }
 
-/** Chat engine used by story generation / translation (OpenAI only). */
+/** Chat engine used by story generation / translation (Gemini only). */
 export interface ChatEngine {
   readonly backend: LlmBackend
   readonly modelId: string

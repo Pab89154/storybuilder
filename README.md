@@ -1,6 +1,6 @@
 # StoryBuilder
 
-Browser-based story generator for children (up to 12 years). Stories are generated online via the OpenAI API; guest data stays in the browser (IndexedDB) and signed-in stories sync with Supabase.
+Browser-based story generator for children (up to 12 years). Stories are generated online via the **Gemini** API; guest data stays in the browser (IndexedDB) and signed-in stories sync with Supabase.
 
 The interface is available in **English**, **Spanish**, **Mandarin Chinese**, **Arabic**, **French**, and **German**.
 
@@ -18,7 +18,8 @@ The interface is available in **English**, **Spanish**, **Mandarin Chinese**, **
 
 - **Node.js 20+**
 - Modern desktop or mobile browser with **internet access**
-- `VITE_OPENAI_API_KEY` set for local and production builds
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` for auth + AI proxy
+- `GEMINI_API_KEY` set as a Supabase Edge Function secret
 
 ## Quick start
 
@@ -48,13 +49,13 @@ Then open the Network URL shown in the terminal (e.g. `http://192.168.x.x:5173`)
 
 ## AI model
 
-Story generation uses **OpenAI** (`gpt-4o-mini`) over the network. There is no local/offline model.
+Story generation uses **Google Gemini** (`gemini-2.0-flash`) over the network. There is no local/offline model.
 
 ## Data & privacy
 
 - Guest stories stay in **IndexedDB** on your device
 - Signed-in stories sync with **Supabase** (encrypted)
-- Story prompts are sent to OpenAI to generate text
+- Story prompts are sent to Gemini to generate text
 - Clearing browser data deletes guest stories on that device
 
 ## Project structure
@@ -64,7 +65,7 @@ src/
 ├── components/     # UI (layout, story)
 ├── db/             # Dexie / IndexedDB
 ├── hooks/          # useStories, useLLM, useGeneration
-├── lib/llm/        # OpenAI engine, prompts, generation
+├── lib/llm/        # Gemini engine, prompts, generation
 ├── lib/export/     # TXT export
 ├── store/          # Zustand state
 └── types/          # TypeScript types

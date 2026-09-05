@@ -1,21 +1,24 @@
 import type { ChatEngine } from '@/lib/llm/chatTypes'
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/supabase/client'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
+const DEFAULT_MODEL = 'gemini-2.0-flash'
 
 function chatProxyUrl(): string {
   if (!supabaseUrl) throw new Error('Supabase URL is not configured')
-  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/openai-chat`
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/gemini-chat`
 }
 
-export function getOpenAIModelId(): string {
+export function getGeminiModelId(): string {
   return DEFAULT_MODEL
 }
 
-/** OpenAI is available when Supabase (proxy) is configured. The API key stays server-side. */
-export function isOpenAIConfigured(): boolean {
+/** Gemini is available when Supabase (proxy) is configured. The API key stays server-side. */
+export function isGeminiConfigured(): boolean {
   return isSupabaseConfigured
 }
+
+/** @deprecated Use isGeminiConfigured */
+export const isOpenAIConfigured = isGeminiConfigured
 
 async function* parseSseStream(
   body: ReadableStream<Uint8Array>,
@@ -53,10 +56,8 @@ async function* parseSseStream(
           const delta = json.choices?.[0]?.delta?.content
           if (delta) yield delta
         } catch (error) {
-          if (error instanceof Error && error.message && !error.message.includes('JSON')) {
-            throw error
-          }
-          /* skip malformed chunk */
+          if (error instanceof SyntaxError) continue
+          throw error
         }
       }
     }
@@ -86,16 +87,16 @@ function mapFetchError(error: unknown): Error {
   )
 }
 
-export function createOpenAIEngine(): ChatEngine {
-  if (!isOpenAIConfigured()) {
-    throw new Error('Supabase is not configured — cannot reach the OpenAI proxy.')
+export function createGeminiEngine(): ChatEngine {
+  if (!isGeminiConfigured()) {
+    throw new Error('Supabase is not configured — cannot reach the Gemini proxy.')
   }
 
-  const modelId = getOpenAIModelId()
+  const modelId = getGeminiModelId()
   let activeAbort: AbortController | null = null
 
   const engine: ChatEngine = {
-    backend: 'openai',
+    backend: 'gemini',
     modelId,
 
     async interruptGenerate() {
@@ -205,3 +206,6 @@ export function createOpenAIEngine(): ChatEngine {
 
   return engine
 }
+
+/** @deprecated Use createGeminiEngine */
+export const createOpenAIEngine = createGeminiEngine

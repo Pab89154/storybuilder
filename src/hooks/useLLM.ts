@@ -23,7 +23,7 @@ async function loadModelOnce(): Promise<void> {
     })
     setReady(result.modelId)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to connect to OpenAI'
+    const message = err instanceof Error ? err.message : 'Failed to connect to Gemini'
     setError(message)
   }
 }

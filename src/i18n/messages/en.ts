@@ -229,7 +229,7 @@ export const en = {
   },
   webgpu: {
     title: 'Compatible mode active',
-    body: 'StoryBuilder needs an internet connection and a configured OpenAI API key.',
+    body: 'StoryBuilder needs an internet connection and a configured Gemini API key.',
   },
   duplicate: {
     title: 'Duplicate story',
@@ -396,7 +396,7 @@ export const en = {
       'Guest stories stay in this browser session only. Sign in to save securely in the cloud and share links.',
     troubleTitle: 'If generation cannot start',
     troubleBody:
-      'StoryBuilder needs an internet connection. Check that you are online and that OpenAI is configured for this deployment, then retry.',
+      'StoryBuilder needs an internet connection. Check that you are online and that Gemini is configured for this deployment, then retry.',
   },
   share: {
     title: 'Share story',

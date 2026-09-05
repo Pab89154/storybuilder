@@ -40,16 +40,18 @@ For GitHub Pages, add these repository **Secrets** (Settings → Secrets and var
 
 The deploy workflow (`.github/workflows/deploy-pages.yml`) passes them into `npm run build`.
 
-## 4. OpenAI story generation (required)
+## 4. Gemini story generation (required)
 
-Deploy the edge function in `supabase/functions/openai-chat/` (already in the repo).
+Deploy the edge function in `supabase/functions/gemini-chat/` (already in the repo).
 
 In **Project Settings → Edge Functions → Secrets**, add:
 
-- `OPENAI_API_KEY` — your real OpenAI secret key (`sk-…`)
+- `GEMINI_API_KEY` — your Google AI Studio / Gemini API key
 
 Do **not** put this key in `VITE_*` or Render frontend env vars. The browser calls
-`/functions/v1/openai-chat`, which talks to OpenAI server-side (avoids CORS and keeps the key private).
+`/functions/v1/gemini-chat`, which talks to Gemini server-side (avoids CORS and keeps the key private).
+
+You can remove the old `OPENAI_API_KEY` secret if it is still present.
 
 ## 5. Recovery key email (optional)
 

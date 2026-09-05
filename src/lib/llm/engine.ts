@@ -2,18 +2,18 @@ import type { Language } from '@/types/story'
 import { buildAntiRefusalReminder } from '@/lib/llm/promptLocale'
 import { looksLikeRefusal, stripRefusal } from '@/lib/llm/refusal'
 import type { ChatEngine, LoadProgress } from '@/lib/llm/chatTypes'
-import { createOpenAIEngine, isOpenAIConfigured } from '@/lib/llm/openaiEngine'
+import { createGeminiEngine, isGeminiConfigured } from '@/lib/llm/geminiEngine'
 
 export type { ChatEngine, LoadProgress, LlmBackend } from '@/lib/llm/chatTypes'
-export { isOpenAIConfigured } from '@/lib/llm/openaiEngine'
+export { isGeminiConfigured, isOpenAIConfigured } from '@/lib/llm/geminiEngine'
 
-export const OPENAI_MODEL_ID = 'gpt-4o-mini'
+export const GEMINI_MODEL_ID = 'gemini-2.0-flash'
 
 let engineInstance: ChatEngine | null = null
 let initPromise: Promise<ChatEngine> | null = null
 
 export function getModelId(): string {
-  return OPENAI_MODEL_ID
+  return GEMINI_MODEL_ID
 }
 
 export async function initEngine(
@@ -41,9 +41,9 @@ export async function initEngine(
   }
 
   initPromise = (async () => {
-    if (!isOpenAIConfigured()) {
+    if (!isGeminiConfigured()) {
       throw new Error(
-        'Story AI is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, and add OPENAI_API_KEY as a Supabase Edge Function secret.',
+        'Story AI is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, and add GEMINI_API_KEY as a Supabase Edge Function secret.',
       )
     }
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -52,8 +52,8 @@ export async function initEngine(
       )
     }
 
-    onProgress?.({ progress: 0.4, text: 'Connecting to OpenAI…' })
-    const engine = createOpenAIEngine()
+    onProgress?.({ progress: 0.4, text: 'Connecting to Gemini…' })
+    const engine = createGeminiEngine()
     onProgress?.({ progress: 1, text: `Ready (${engine.modelId})` })
     engineInstance = engine
     return engine
