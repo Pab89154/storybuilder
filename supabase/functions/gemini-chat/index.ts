@@ -127,10 +127,18 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const model =
+  const requested =
     typeof payload.model === "string" && payload.model.trim()
       ? payload.model.trim()
       : DEFAULT_MODEL
+  // Map retired model IDs so older frontend builds keep working.
+  const retired: Record<string, string> = {
+    "gemini-2.0-flash": DEFAULT_MODEL,
+    "gemini-2.0-flash-001": DEFAULT_MODEL,
+    "gemini-1.5-flash": DEFAULT_MODEL,
+    "gemini-1.5-flash-latest": DEFAULT_MODEL,
+  }
+  const model = retired[requested] ?? requested
   const temperature =
     typeof payload.temperature === "number" ? payload.temperature : 0.8
   const maxTokens =
