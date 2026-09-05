@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
-const DEFAULT_MODEL = "gemini-2.0-flash"
+const DEFAULT_MODEL = "gemini-3.6-flash"
 
 const ALLOWED_ORIGINS = new Set([
   "https://storybuilder.pw",

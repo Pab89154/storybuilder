@@ -49,7 +49,7 @@ Then open the Network URL shown in the terminal (e.g. `http://192.168.x.x:5173`)
 
 ## AI model
 
-Story generation uses **Google Gemini** (`gemini-2.0-flash`) over the network. There is no local/offline model.
+Story generation uses **Google Gemini** (`gemini-3.6-flash`) over the network. There is no local/offline model.
 
 ## Data & privacy
 

@@ -7,7 +7,7 @@ import { createGeminiEngine, isGeminiConfigured } from '@/lib/llm/geminiEngine'
 export type { ChatEngine, LoadProgress, LlmBackend } from '@/lib/llm/chatTypes'
 export { isGeminiConfigured, isOpenAIConfigured } from '@/lib/llm/geminiEngine'
 
-export const GEMINI_MODEL_ID = 'gemini-2.0-flash'
+export const GEMINI_MODEL_ID = 'gemini-3.6-flash'
 
 let engineInstance: ChatEngine | null = null
 let initPromise: Promise<ChatEngine> | null = null

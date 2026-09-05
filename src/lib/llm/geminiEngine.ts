@@ -1,7 +1,7 @@
 import type { ChatEngine } from '@/lib/llm/chatTypes'
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/supabase/client'
 
-const DEFAULT_MODEL = 'gemini-2.0-flash'
+const DEFAULT_MODEL = 'gemini-3.6-flash'
 
 function chatProxyUrl(): string {
   if (!supabaseUrl) throw new Error('Supabase URL is not configured')
