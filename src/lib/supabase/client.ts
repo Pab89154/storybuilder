@@ -44,6 +44,7 @@ if (!configError) {
 
 export const supabaseConfigError = configError
 export const isSupabaseConfigured = configuredClient !== null
+export { supabaseUrl, supabaseAnonKey }
 
 export const supabase: SupabaseClient = configuredClient
   ? configuredClient

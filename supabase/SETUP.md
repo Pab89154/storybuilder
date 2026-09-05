@@ -40,7 +40,18 @@ For GitHub Pages, add these repository **Secrets** (Settings → Secrets and var
 
 The deploy workflow (`.github/workflows/deploy-pages.yml`) passes them into `npm run build`.
 
-## 4. Recovery key email (optional)
+## 4. OpenAI story generation (required)
+
+Deploy the edge function in `supabase/functions/openai-chat/` (already in the repo).
+
+In **Project Settings → Edge Functions → Secrets**, add:
+
+- `OPENAI_API_KEY` — your real OpenAI secret key (`sk-…`)
+
+Do **not** put this key in `VITE_*` or Render frontend env vars. The browser calls
+`/functions/v1/openai-chat`, which talks to OpenAI server-side (avoids CORS and keeps the key private).
+
+## 5. Recovery key email (optional)
 
 Deploy the edge function in `supabase/functions/send-recovery-email/` and set:
 
@@ -49,6 +60,6 @@ Deploy the edge function in `supabase/functions/send-recovery-email/` and set:
 
 Without this, recovery keys are still shown in the app after signup; users should save them.
 
-## 5. GitHub Pages base path
+## 6. GitHub Pages base path
 
 If the app is not served from the domain root, set `VITE_BASE_PATH` in your deploy environment (e.g. `/pablete-starter/`).

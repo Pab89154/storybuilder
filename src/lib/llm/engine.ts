@@ -43,7 +43,7 @@ export async function initEngine(
   initPromise = (async () => {
     if (!isOpenAIConfigured()) {
       throw new Error(
-        'OpenAI API key is missing. Set VITE_OPENAI_API_KEY and rebuild. StoryBuilder requires an online connection.',
+        'Story AI is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, and add OPENAI_API_KEY as a Supabase Edge Function secret.',
       )
     }
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {

@@ -1,19 +1,20 @@
 import type { ChatEngine } from '@/lib/llm/chatTypes'
+import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/supabase/client'
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
+const DEFAULT_MODEL = 'gpt-4o-mini'
 
-function getOpenAIApiKey(): string | undefined {
-  const key = import.meta.env.VITE_OPENAI_API_KEY?.trim()
-  return key || undefined
+function chatProxyUrl(): string {
+  if (!supabaseUrl) throw new Error('Supabase URL is not configured')
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/openai-chat`
 }
 
 export function getOpenAIModelId(): string {
-  // Fixed default — no model env var required from the user.
-  return 'gpt-4o-mini'
+  return DEFAULT_MODEL
 }
 
+/** OpenAI is available when Supabase (proxy) is configured. The API key stays server-side. */
 export function isOpenAIConfigured(): boolean {
-  return Boolean(getOpenAIApiKey())
+  return isSupabaseConfigured
 }
 
 async function* parseSseStream(
@@ -44,10 +45,17 @@ async function* parseSseStream(
         try {
           const json = JSON.parse(data) as {
             choices?: Array<{ delta?: { content?: string } }>
+            error?: { message?: string }
+          }
+          if (json.error?.message) {
+            throw new Error(json.error.message)
           }
           const delta = json.choices?.[0]?.delta?.content
           if (delta) yield delta
-        } catch {
+        } catch (error) {
+          if (error instanceof Error && error.message && !error.message.includes('JSON')) {
+            throw error
+          }
           /* skip malformed chunk */
         }
       }
@@ -57,10 +65,30 @@ async function* parseSseStream(
   }
 }
 
+function authHeaders(): HeadersInit {
+  if (!supabaseAnonKey) {
+    throw new Error('Supabase anon key is not configured')
+  }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${supabaseAnonKey}`,
+    apikey: supabaseAnonKey,
+  }
+}
+
+function mapFetchError(error: unknown): Error {
+  if (error instanceof DOMException && error.name === 'AbortError') return error
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return new Error('You are offline. StoryBuilder needs an internet connection.')
+  }
+  return new Error(
+    'Could not reach the story AI service. Check your connection and try again.',
+  )
+}
+
 export function createOpenAIEngine(): ChatEngine {
-  const apiKey = getOpenAIApiKey()
-  if (!apiKey) {
-    throw new Error('VITE_OPENAI_API_KEY is not set')
+  if (!isOpenAIConfigured()) {
+    throw new Error('Supabase is not configured — cannot reach the OpenAI proxy.')
   }
 
   const modelId = getOpenAIModelId()
@@ -76,28 +104,30 @@ export function createOpenAIEngine(): ChatEngine {
     },
 
     async completeText(systemPrompt, userPrompt, maxTokens = 1024, temperature = 0.3) {
-      const response = await fetch(OPENAI_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: modelId,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature,
-          max_tokens: maxTokens,
-          stream: false,
-        }),
-      })
+      let response: Response
+      try {
+        response = await fetch(chatProxyUrl(), {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            model: modelId,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature,
+            max_tokens: maxTokens,
+            stream: false,
+          }),
+        })
+      } catch (error) {
+        throw mapFetchError(error)
+      }
 
       if (!response.ok) {
         const detail = await response.text().catch(() => '')
         throw new Error(
-          `OpenAI error ${response.status}: ${detail || response.statusText}`,
+          `AI error ${response.status}: ${detail || response.statusText}`,
         )
       }
 
@@ -127,29 +157,31 @@ export function createOpenAIEngine(): ChatEngine {
       signal?.addEventListener('abort', onExternalAbort, { once: true })
 
       try {
-        const response = await fetch(OPENAI_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          signal: localAbort.signal,
-          body: JSON.stringify({
-            model: modelId,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature,
-            max_tokens: maxTokens,
-            stream: true,
-          }),
-        })
+        let response: Response
+        try {
+          response = await fetch(chatProxyUrl(), {
+            method: 'POST',
+            headers: authHeaders(),
+            signal: localAbort.signal,
+            body: JSON.stringify({
+              model: modelId,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              temperature,
+              max_tokens: maxTokens,
+              stream: true,
+            }),
+          })
+        } catch (error) {
+          throw mapFetchError(error)
+        }
 
         if (!response.ok || !response.body) {
           const detail = await response.text().catch(() => '')
           throw new Error(
-            `OpenAI error ${response.status}: ${detail || response.statusText}`,
+            `AI error ${response.status}: ${detail || response.statusText}`,
           )
         }
 
