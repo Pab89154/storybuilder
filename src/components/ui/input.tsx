@@ -1,8 +1,9 @@
 import { forwardRef, type InputHTMLAttributes } from 'react'
+import { scrollFocusedFieldIntoView } from '@/lib/mobileFocus'
 import { cn } from '@/lib/utils'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type, ...props }, ref) => (
+  ({ className, type, onFocus, ...props }, ref) => (
     <input
       type={type}
       className={cn(
@@ -10,6 +11,10 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
         className,
       )}
       ref={ref}
+      onFocus={(event) => {
+        scrollFocusedFieldIntoView(event.currentTarget)
+        onFocus?.(event)
+      }}
       {...props}
     />
   ),
