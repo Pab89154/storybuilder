@@ -145,7 +145,9 @@ export function requestFinishActiveBook() {
   signalGenerationAbort(true)
 }
 
-type GenerationCallbacks = ReturnType<typeof buildCallbacksForRun>
+type GenerationCallbacks = ReturnType<typeof buildCallbacksForRun> & {
+  onChunkLimitReached?: () => void
+}
 
 function buildCallbacksForRun(storyId: string, runId: number, signal?: AbortSignal) {
   const isStale = () =>
