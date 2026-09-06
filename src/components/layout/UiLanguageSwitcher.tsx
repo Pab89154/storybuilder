@@ -29,7 +29,7 @@ export function UiLanguageSwitcher({ compact = false }: { compact?: boolean }) {
     <div className={cn('min-w-0', compact ? 'w-full' : 'w-full')}>
       <Select value={locale} onValueChange={(value) => setLocale(value as UiLocale)}>
         <SelectTrigger
-          className={cn('h-8 w-full text-xs', compact && 'h-7')}
+          className={cn('h-8 w-full text-base', compact && 'h-7')}
           aria-label={t('uiLanguage.aria')}
         >
           <SelectValue>

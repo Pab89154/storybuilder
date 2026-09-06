@@ -34,7 +34,11 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
   const handleSave = async () => {
     if (!activeStory) return
     await updateParagraph(paragraph.id, { content: editContent, source: 'user' })
-    await loadStory(activeStory.id, { onlyIfStillActive: true })
+    useStoryStore.getState().upsertParagraph({
+      ...paragraph,
+      content: editContent,
+      source: 'user',
+    })
     setIsEditing(false)
   }
 

@@ -8,6 +8,7 @@ import { loadSharedStory, readShareSecretFromHash, saveSharedStory } from '@/lib
 import type { ShareAccessMode } from '@/types/share'
 import type { StoryWithDetails } from '@/types/story'
 import { cn } from '@/lib/utils'
+import { scrollFocusedFieldIntoView } from '@/lib/mobileFocus'
 
 type ViewMode = 'read' | 'edit'
 
@@ -125,8 +126,11 @@ export function SharedStoryPage() {
             {story.paragraphs.map((paragraph) => (
               <textarea
                 key={paragraph.id}
-                className="min-h-28 w-full rounded-lg border bg-[var(--color-card)] p-3 text-sm"
+                className="min-h-28 w-full rounded-lg border bg-[var(--color-card)] p-3 text-base"
                 value={paragraph.content}
+                onFocus={(event) => {
+                  scrollFocusedFieldIntoView(event.currentTarget)
+                }}
                 onChange={(event) => {
                   const content = event.target.value
                   setStory((current) =>

@@ -635,7 +635,7 @@ function CollectionHeader({
       {isEditing ? (
         <Input
           autoFocus
-          className="h-7 flex-1 text-xs font-semibold"
+          className="h-7 flex-1 text-base font-semibold"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={commitRename}

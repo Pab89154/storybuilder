@@ -131,9 +131,15 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
     const currentTitle = story.chapters.find((chapter) => chapter.id === chapterId)?.title ?? ''
     if (trimmed === currentTitle) return
     dirtyChapterTitlesRef.current.delete(chapterId)
-    void updateChapter(chapterId, { title: trimmed }).then(() =>
-      loadStory(story.id, { onlyIfStillActive: true }),
+    // Optimistic local update — avoid loadStory while focus may be moving to another field.
+    useStoryStore.getState().updateActiveChapters(
+      story.chapters.map((chapter) =>
+        chapter.id === chapterId ? { ...chapter, title: trimmed } : chapter,
+      ),
     )
+    void updateChapter(chapterId, { title: trimmed }).catch(() => {
+      void loadStory(story.id, { onlyIfStillActive: true })
+    })
   }
 
   return (
@@ -215,7 +221,7 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                   onChange={(event) => void onSaveMeta({ prompt: event.target.value })}
                   placeholder={t('setup.promptPlaceholder')}
                   rows={3}
-                  className="w-full resize-none border-stone-200 bg-stone-50/50 text-sm focus:bg-white"
+                  className="w-full resize-none border-stone-200 bg-stone-50/50 focus:bg-white"
                 />
               </label>
             </div>
@@ -246,14 +252,11 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                       value={story.plannedChapterCount}
                       disabled={!canEditPlan}
                       onChange={(event) =>
-                        void onSaveMeta(
-                          {
-                            plannedChapterCount: clampPlannedChapterCount(
-                              Number(event.target.value) || MIN_PLANNED_CHAPTERS,
-                            ),
-                          },
-                          { persistNow: true },
-                        )
+                        void onSaveMeta({
+                          plannedChapterCount: clampPlannedChapterCount(
+                            Number(event.target.value) || MIN_PLANNED_CHAPTERS,
+                          ),
+                        })
                       }
                       className="h-9 border-stone-200 bg-white"
                     />
@@ -270,14 +273,11 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                       value={story.chapterWordTarget}
                       disabled={!canEditPlan}
                       onChange={(event) =>
-                        void onSaveMeta(
-                          {
-                            chapterWordTarget: clampChapterWordTarget(
-                              Number(event.target.value) || story.chapterWordTarget,
-                            ),
-                          },
-                          { persistNow: true },
-                        )
+                        void onSaveMeta({
+                          chapterWordTarget: clampChapterWordTarget(
+                            Number(event.target.value) || story.chapterWordTarget,
+                          ),
+                        })
                       }
                       className="h-9 border-stone-200 bg-white"
                     />
@@ -295,14 +295,11 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                       value={story.chapterWordTarget}
                       disabled={isGenerating || story.isBookFinished}
                       onChange={(event) =>
-                        void onSaveMeta(
-                          {
-                            chapterWordTarget: clampChapterWordTarget(
-                              Number(event.target.value) || story.chapterWordTarget,
-                            ),
-                          },
-                          { persistNow: true },
-                        )
+                        void onSaveMeta({
+                          chapterWordTarget: clampChapterWordTarget(
+                            Number(event.target.value) || story.chapterWordTarget,
+                          ),
+                        })
                       }
                       className="h-9 border-stone-200 bg-white"
                     />
@@ -321,15 +318,12 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                       value={story.finishPercent}
                       disabled={isGenerating || story.isBookFinished}
                       onChange={(event) =>
-                        void onSaveMeta(
-                          {
-                            finishPercent: Math.max(
-                              MIN_FINISH_PERCENT,
-                              Math.min(MAX_FINISH_PERCENT, Number(event.target.value) || 25),
-                            ),
-                          },
-                          { persistNow: true },
-                        )
+                        void onSaveMeta({
+                          finishPercent: Math.max(
+                            MIN_FINISH_PERCENT,
+                            Math.min(MAX_FINISH_PERCENT, Number(event.target.value) || 25),
+                          ),
+                        })
                       }
                       className="h-9 border-stone-200 bg-white"
                     />
@@ -381,7 +375,7 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                                   event.currentTarget.blur()
                                 }
                               }}
-                              className="h-8 min-w-0 w-full flex-1 border-none bg-transparent px-1 text-sm font-medium shadow-none focus-visible:ring-1"
+                              className="h-8 min-w-0 w-full flex-1 border-none bg-transparent px-1 font-medium shadow-none focus-visible:ring-1"
                               aria-label={t('setup.chapterTitleAria', { number: index + 1 })}
                             />
                           </div>
@@ -408,7 +402,7 @@ export function StorySetupPanel({ story, onSaveMeta }: StorySetupPanelProps) {
                     onChange={(event) => setAdvancedChapterBrief(event.target.value)}
                     placeholder={t('setup.nextChapterNotesPlaceholder')}
                     rows={2}
-                    className="resize-none border-stone-200 bg-white text-sm"
+                    className="resize-none border-stone-200 bg-white"
                   />
                 </label>
               ) : null}

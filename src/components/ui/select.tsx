@@ -13,7 +13,7 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'flex h-10 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-md border border-[var(--color-input)] bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm [&>span:first-child]:min-w-0 [&>span:first-child]:flex-1 [&>span:first-child]:truncate [&>span:first-child]:text-left',
+        'flex h-10 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-md border border-[var(--color-input)] bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-50 [&>span:first-child]:min-w-0 [&>span:first-child]:flex-1 [&>span:first-child]:truncate [&>span:first-child]:text-left',
         className,
       )}
       {...props}

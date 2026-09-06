@@ -116,7 +116,7 @@ export function StoryListItem({
                   setIsRenaming(false)
                 }
               }}
-              className="h-7 w-full text-sm"
+              className="h-7 w-full text-base"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -215,7 +215,7 @@ export function StoryListItem({
             onValueChange={(value) => onMove(story.id, value === 'none' ? null : value)}
           >
             <SelectTrigger
-              className="h-7 w-full min-w-0 px-2 text-xs"
+              className="h-7 w-full min-w-0 px-2 text-base"
               onClick={(e) => e.stopPropagation()}
             >
               <SelectValue placeholder={t('storyList.moveToCollection')} />

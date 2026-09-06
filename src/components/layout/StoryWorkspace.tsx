@@ -276,7 +276,7 @@ export function StoryWorkspace() {
               value={activeStory.language}
               disabled={isGenerating || isDuplicating}
               onValueChange={(language) => void changeStoryLanguage(activeStory, language)}
-              triggerClassName="h-9 w-full text-xs sm:h-8"
+              triggerClassName="h-9 w-full sm:h-8"
             />
             {isDuplicating && duplicateProgress ? (
               <span className="text-[10px] text-[var(--color-muted-foreground)]">{duplicateProgress}</span>
@@ -289,7 +289,7 @@ export function StoryWorkspace() {
             onChange={(e) => void saveStoryMeta({ genre: e.target.value })}
             placeholder={t('workspace.genre')}
             aria-label={t('workspace.genre')}
-            className="h-9 min-w-[5rem] flex-1 text-base sm:h-8 sm:w-28 sm:flex-none sm:text-xs"
+            className="h-9 min-w-[5rem] flex-1 text-base sm:h-8 sm:w-28 sm:flex-none"
           />
           <datalist id="genre-suggestions">
             {GENRE_I18N_KEYS.map((key) => (
@@ -302,7 +302,7 @@ export function StoryWorkspace() {
               void moveStory(activeStory.id, value === 'none' ? null : value)
             }
           >
-            <SelectTrigger className="h-9 min-w-[8rem] flex-1 text-xs sm:h-8 sm:w-44 sm:flex-none" aria-label={t('workspace.collection')}>
+            <SelectTrigger className="h-9 min-w-[8rem] flex-1 sm:h-8 sm:w-44 sm:flex-none" aria-label={t('workspace.collection')}>
               <SelectValue placeholder={t('workspace.collection')} />
             </SelectTrigger>
             <SelectContent>
