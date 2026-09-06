@@ -53,7 +53,8 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
         'group/para relative',
         isFlow
           ? cn(
-              'mb-4 last:mb-0',
+              // Reserve space on the right so absolute edit controls never cover prose.
+              'mb-4 last:mb-0 sm:pr-[5.75rem]',
               isStreaming && 'rounded-md bg-[var(--color-primary)]/5 px-1 -mx-1',
             )
           : cn(
@@ -67,7 +68,7 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
           className={cn(
             'flex justify-end gap-0.5',
             isFlow
-              ? 'relative mb-1 justify-end opacity-100 sm:absolute sm:-right-1 sm:top-0 sm:z-10 sm:mb-0 sm:opacity-0 sm:transition-opacity sm:group-hover/para:opacity-100 sm:group-focus-within/para:opacity-100'
+              ? 'relative mb-1 justify-end opacity-100 sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0 sm:opacity-0 sm:transition-opacity sm:group-hover/para:opacity-100 sm:group-focus-within/para:opacity-100'
               : 'mb-2',
           )}
         >

@@ -25,8 +25,40 @@ const finishBookRequestedRef = { current: false }
 const generationCancelledRef = { current: false }
 const generationInFlightRef = { current: null as Promise<void> | null }
 
+/** One silent 429 recovery: wait, then auto-continue. Show the error if it never resumes. */
+const RATE_LIMIT_WAIT_MS = 60_000
+const RATE_LIMIT_SILENT_BUDGET_MS = 180_000
+
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === 'AbortError'
+}
+
+function isRateLimitError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? '')
+  return (
+    /\b429\b/.test(message) ||
+    /RESOURCE_EXHAUSTED/i.test(message) ||
+    /quota exceeded/i.test(message) ||
+    /rate[- ]?limits?/i.test(message)
+  )
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Generation aborted', 'AbortError'))
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(new DOMException('Generation aborted', 'AbortError'))
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
 }
 
 function canContinueRun(runId: number): boolean {
@@ -216,22 +248,173 @@ export function useGeneration() {
       })
       generationInFlightRef.current = inFlight
 
-      try {
+      const resumeContinueBook = async (resumeCallbacks: GenerationCallbacks) => {
+        await interruptActiveGeneration()
+        const engine = await ensureEngine()
+        await loadStory(storyId, { onlyIfStillActive: true })
+        const current = useStoryStore.getState().activeStory
+        if (!current || current.id !== storyId || current.isBookFinished) return
+
+        if (current.creationMode === 'automatic') {
+          await generateOrContinueAutomaticBook(
+            engine,
+            current,
+            current.characters,
+            current.chapters,
+            current.paragraphs,
+            resumeCallbacks,
+          )
+          return
+        }
+
+        if (current.creationMode === 'advanced' && current.chapters.length > 0) {
+          await continueAdvancedBook(
+            engine,
+            current,
+            current.characters,
+            current.chapters,
+            current.paragraphs,
+            resumeCallbacks,
+          )
+          return
+        }
+
+        if (current.paragraphs.length > 0) {
+          await continueStory(
+            engine,
+            current,
+            current.characters,
+            current.paragraphs,
+            resumeCallbacks,
+          )
+          return
+        }
+
+        if (current.prompt.trim()) {
+          await generateStoryFromScratch(
+            engine,
+            current,
+            current.characters,
+            resumeCallbacks,
+          )
+        }
+      }
+
+      const runWithRateLimitRetry = async (work: () => Promise<void>) => {
         try {
-          await action(callbacks)
+          await work()
+          return
         } catch (err) {
-          if (canContinueRun(runId) && !isAbortError(err)) {
-            setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
+          if (!canContinueRun(runId) || isAbortError(err)) return
+          if (!isRateLimitError(err)) {
+            setGenerationError(
+              err instanceof Error ? err.message : t('errors.generationFailed'),
+            )
+            return
+          }
+
+          const rateLimitMessage =
+            err instanceof Error ? err.message : t('errors.generationFailed')
+
+          // One silent recovery only: keep spinner up, wait, auto-continue.
+          // If generation does not resume within 180s, surface the error.
+          setGenerationError(null)
+          const silentStartedAt = Date.now()
+          let generationResumed = false
+          const markResumed = () => {
+            generationResumed = true
+          }
+
+          try {
+            const waitMs = Math.min(
+              RATE_LIMIT_WAIT_MS,
+              Math.max(0, RATE_LIMIT_SILENT_BUDGET_MS - (Date.now() - silentStartedAt)),
+            )
+            await delay(waitMs, generationAbortRef.current?.signal)
+          } catch (waitErr) {
+            if (isAbortError(waitErr) || !canContinueRun(runId)) return
+            throw waitErr
+          }
+          if (!canContinueRun(runId)) return
+
+          const remainingMs =
+            RATE_LIMIT_SILENT_BUDGET_MS - (Date.now() - silentStartedAt)
+          if (remainingMs <= 0) {
+            setGenerationError(rateLimitMessage)
+            return
+          }
+
+          if (!generationAbortRef.current || generationAbortRef.current.signal.aborted) {
+            generationAbortRef.current = new AbortController()
+            bindGenerationAbort(generationAbortRef.current)
+          }
+          const baseCallbacks = buildCallbacksForRun(
+            storyId,
+            runId,
+            generationAbortRef.current.signal,
+          )
+          const resumeCallbacks: GenerationCallbacks = {
+            ...baseCallbacks,
+            onToken: (token) => {
+              markResumed()
+              baseCallbacks.onToken(token)
+            },
+            onParagraphStart: (paragraph) => {
+              markResumed()
+              baseCallbacks.onParagraphStart(paragraph)
+            },
+            onParagraphComplete: (paragraph) => {
+              markResumed()
+              baseCallbacks.onParagraphComplete(paragraph)
+            },
+            onChunkLimitReached: () => {
+              if (!canContinueRun(runId)) return
+              setGenerationError(t('errors.chunkLimitReached'))
+            },
+          }
+
+          const resumePromise = resumeContinueBook(resumeCallbacks).then(() => {
+            markResumed()
+          })
+          const timeoutPromise = delay(
+            remainingMs,
+            generationAbortRef.current.signal,
+          ).then(() => 'timeout' as const)
+
+          try {
+            const winner = await Promise.race([
+              resumePromise.then(() => 'done' as const),
+              timeoutPromise,
+            ])
+            if (winner === 'timeout' && !generationResumed) {
+              void interruptActiveGeneration()
+              if (canContinueRun(runId)) setGenerationError(rateLimitMessage)
+              return
+            }
+            if (winner === 'timeout' && generationResumed) {
+              await resumePromise
+              return
+            }
+          } catch (resumeErr) {
+            if (!canContinueRun(runId) || isAbortError(resumeErr)) return
+            // Second failure (including another 429): show the error — no more silent retries.
+            setGenerationError(
+              resumeErr instanceof Error ? resumeErr.message : rateLimitMessage,
+            )
           }
         }
+      }
+
+      try {
+        await runWithRateLimitRetry(async () => {
+          await action(callbacks)
+        })
 
         if (options?.finishBookOnRequest && finishBookRequestedRef.current && canContinueRun(runId)) {
           finishBookRequestedRef.current = false
-          try {
+          await runWithRateLimitRetry(async () => {
             await interruptActiveGeneration()
-            if (!canContinueRun(runId)) {
-              return
-            }
+            if (!canContinueRun(runId)) return
 
             generationAbortRef.current = new AbortController()
             bindGenerationAbort(generationAbortRef.current)
@@ -260,11 +443,7 @@ export function useGeneration() {
             } else if (current && current.id === storyId && current.chapters.length === 0) {
               setGenerationError(t('errors.addChapterBeforeFinish'))
             }
-          } catch (err) {
-            if (canContinueRun(runId) && !isAbortError(err)) {
-              setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
-            }
-          }
+          })
         }
       } finally {
         resolveInFlight?.()
