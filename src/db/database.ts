@@ -70,8 +70,11 @@ export async function deleteStory(storyId: string) {
   return (await repo()).deleteStory(storyId)
 }
 
-export async function createFolder(name: string) {
-  return (await repo()).createFolder(name)
+export async function createFolder(
+  name: string,
+  options?: { id?: string; order?: number },
+) {
+  return (await repo()).createFolder(name, options)
 }
 
 export async function updateFolder(

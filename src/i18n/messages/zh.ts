@@ -31,6 +31,7 @@ export const zh = {
     newStoryDescription: '选择故事语言和读者年龄。这将调整词汇量和复杂度。',
     collection: '合集',
     collectionName: '合集名称',
+    collectionSaveFailed: '无法保存合集。请登录后重试。',
     add: '添加',
     searchPlaceholder: '搜索标题、内容、角色…',
     filters: '筛选',

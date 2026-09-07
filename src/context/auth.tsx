@@ -110,6 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setDatabaseAuthMode('authenticated')
           setEncryptionReady(true)
           setIsLoading(false)
+          try {
+            const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
+            await migrateGuestFoldersToCloud()
+            clearGuestData()
+          } catch (migrationError) {
+            console.warn('[auth] Failed to migrate guest collections', migrationError)
+          }
           return
         }
         // Session persisted but the local key is gone (e.g. cleared storage or a
@@ -155,17 +162,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Keep the DB repository mode in sync with the signed-in + encryption-ready state.
+  useEffect(() => {
+    setDatabaseAuthMode(user && encryptionReady ? 'authenticated' : 'guest')
+  }, [user, encryptionReady])
+
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     try {
       const result = await ensureEncryptionForPassword(password)
-      clearGuestData()
       setDatabaseAuthMode('authenticated')
       setEncryptionReady(true)
       setSession(data.session)
       setUser(data.user)
+      try {
+        const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
+        await migrateGuestFoldersToCloud()
+      } catch (migrationError) {
+        console.warn('[auth] Failed to migrate guest collections', migrationError)
+      }
+      clearGuestData()
       return result
     } catch (encryptionError) {
       // Avoid leaving a half-authenticated session if encryption unlock fails.
@@ -193,11 +211,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.session) {
       try {
         const { recoveryKey } = await ensureEncryptionForPassword(password)
-        clearGuestData()
         setDatabaseAuthMode('authenticated')
         setEncryptionReady(true)
         setSession(data.session)
         setUser(data.user)
+        try {
+          const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
+          await migrateGuestFoldersToCloud()
+        } catch (migrationError) {
+          console.warn('[auth] Failed to migrate guest collections', migrationError)
+        }
+        clearGuestData()
         return { recoveryKey: recoveryKey ?? '', needsEmailConfirmation: false }
       } catch (encryptionError) {
         await supabase.auth.signOut().catch(() => undefined)

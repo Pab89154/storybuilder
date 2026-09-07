@@ -87,20 +87,40 @@ export function Sidebar({ collapsed, onToggleCollapsed, onOpenHowToGuide }: Side
   const [highlightFolderId, setHighlightFolderId] = useState<string | null>(null)
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
 
+  const [folderError, setFolderError] = useState<string | null>(null)
+
   const toggleFolder = (groupKey: string) => {
     setCollapsedFolders((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }))
   }
 
+  const startNewCollection = () => {
+    setFolderError(null)
+    if (!isAuthenticated) {
+      openSignIn()
+      return
+    }
+    setShowNewFolder(true)
+  }
+
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return
-    const folder = await addFolder(newFolderName.trim())
-    setFolderFilter('all')
-    setCollapsedFolders((prev) => ({ ...prev, [folder.id]: false }))
-    setHighlightFolderId(folder.id)
-    setEditingFolderId(folder.id)
-    setNewFolderName('')
-    setShowNewFolder(false)
-    window.setTimeout(() => setHighlightFolderId(null), 2000)
+    setFolderError(null)
+    try {
+      const folder = await addFolder(newFolderName.trim())
+      setFolderFilter('all')
+      setCollapsedFolders((prev) => ({ ...prev, [folder.id]: false }))
+      setHighlightFolderId(folder.id)
+      setEditingFolderId(folder.id)
+      setNewFolderName('')
+      setShowNewFolder(false)
+      window.setTimeout(() => setHighlightFolderId(null), 2000)
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t('sidebar.collectionSaveFailed')
+      setFolderError(message)
+    }
   }
 
   const activeFolder =
@@ -325,12 +345,18 @@ export function Sidebar({ collapsed, onToggleCollapsed, onOpenHowToGuide }: Side
             <Plus className="h-4 w-4" />
             {t('sidebar.newStory')}
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => setShowNewFolder(true)}>
+          <Button variant="outline" className="w-full" onClick={startNewCollection}>
             <Plus className="h-4 w-4" />
             <Library className="h-4 w-4" />
             {t('sidebar.collection')}
           </Button>
         </div>
+
+        {folderError ? (
+          <p className="mt-2 text-xs text-red-600" role="alert">
+            {folderError}
+          </p>
+        ) : null}
 
         <div className="mt-3 flex items-center gap-2">
           <div className="min-w-0 flex-1">

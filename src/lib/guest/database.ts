@@ -20,6 +20,39 @@ import { generateId } from '@/lib/utils'
 const guestStories = new Map<string, StoryWithDetails>()
 const guestFolders = new Map<string, Folder>()
 
+const GUEST_FOLDERS_STORAGE_KEY = 'storybuilder.guest.folders.v1'
+
+function persistGuestFolders(): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    localStorage.setItem(
+      GUEST_FOLDERS_STORAGE_KEY,
+      JSON.stringify([...guestFolders.values()]),
+    )
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function restoreGuestFolders(): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    const raw = localStorage.getItem(GUEST_FOLDERS_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as Folder[]
+    if (!Array.isArray(parsed)) return
+    guestFolders.clear()
+    for (const folder of parsed) {
+      if (!folder?.id || typeof folder.name !== 'string') continue
+      guestFolders.set(folder.id, folder)
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
+}
+
+restoreGuestFolders()
+
 function touchSearchText(details: StoryWithDetails): StoryWithDetails {
   return {
     ...details,
@@ -40,6 +73,18 @@ function saveGuestStory(details: StoryWithDetails): void {
 export function clearGuestData(): void {
   guestStories.clear()
   guestFolders.clear()
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(GUEST_FOLDERS_STORAGE_KEY)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Snapshot used to migrate guest collections into Supabase after sign-in. */
+export function snapshotGuestFolders(): Folder[] {
+  return [...guestFolders.values()].sort((a, b) => a.order - b.order)
 }
 
 export async function listStories(): Promise<Story[]> {
@@ -160,16 +205,20 @@ export async function deleteStory(storyId: string): Promise<void> {
   guestStories.delete(storyId)
 }
 
-export async function createFolder(name: string): Promise<Folder> {
+export async function createFolder(
+  name: string,
+  _options?: { id?: string; order?: number },
+): Promise<Folder> {
   const now = Date.now()
   const folder: Folder = {
-    id: generateId(),
+    id: _options?.id ?? generateId(),
     name: name.trim() || 'New collection',
-    order: guestFolders.size,
+    order: _options?.order ?? guestFolders.size,
     createdAt: now,
     updatedAt: now,
   }
   guestFolders.set(folder.id, folder)
+  persistGuestFolders()
   return folder
 }
 
@@ -180,6 +229,7 @@ export async function updateFolder(
   const folder = guestFolders.get(folderId)
   if (!folder) return
   guestFolders.set(folderId, { ...folder, ...updates, updatedAt: Date.now() })
+  persistGuestFolders()
 }
 
 export async function deleteFolder(folderId: string): Promise<void> {
@@ -189,6 +239,7 @@ export async function deleteFolder(folderId: string): Promise<void> {
     }
   }
   guestFolders.delete(folderId)
+  persistGuestFolders()
 }
 
 export async function addCharacter(

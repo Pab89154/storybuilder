@@ -32,6 +32,7 @@ export const de = {
       'Wähle die Sprache der Geschichte und das Alter des Lesers. Das passt Wortschatz und Komplexität an.',
     collection: 'Sammlung',
     collectionName: 'Name der Sammlung',
+    collectionSaveFailed: 'Sammlung konnte nicht gespeichert werden. Melde dich an und versuche es erneut.',
     add: 'Hinzufügen',
     searchPlaceholder: 'Titel, Inhalt, Charaktere suchen…',
     filters: 'Filter',

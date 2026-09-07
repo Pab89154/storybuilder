@@ -31,6 +31,7 @@ export const ar = {
     newStoryDescription: 'اختر لغة القصة وعمر القارئ. يؤثر ذلك على المفردات ومستوى التعقيد.',
     collection: 'مجموعة',
     collectionName: 'اسم المجموعة',
+    collectionSaveFailed: 'تعذّر حفظ المجموعة. سجّل الدخول وحاول مرة أخرى.',
     add: 'إضافة',
     searchPlaceholder: 'ابحث في العناوين والمحتوى والشخصيات…',
     filters: 'عوامل التصفية',

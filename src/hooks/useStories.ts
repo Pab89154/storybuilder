@@ -4,6 +4,7 @@ import {
   createStory,
   deleteFolder,
   deleteStory,
+  getDatabaseAuthMode,
   getStoryWithDetails,
   listFolders,
   listStories,
@@ -238,15 +239,24 @@ export function useStories() {
 
   const addFolder = useCallback(
     async (name: string) => {
+      if (getDatabaseAuthMode() !== 'authenticated') {
+        throw new Error('Sign in to save collections to your account.')
+      }
       const folder = await createFolder(name)
+      setFolders(
+        [...useStoryStore.getState().folders, folder].sort((a, b) => a.order - b.order),
+      )
       await refreshStories()
       return folder
     },
-    [refreshStories],
+    [refreshStories, setFolders],
   )
 
   const renameFolder = useCallback(
     async (folderId: string, name: string) => {
+      if (getDatabaseAuthMode() !== 'authenticated') {
+        throw new Error('Sign in to save collections to your account.')
+      }
       await updateFolder(folderId, { name: name.trim() || 'Collection' })
       await refreshStories()
     },
@@ -255,6 +265,9 @@ export function useStories() {
 
   const removeFolder = useCallback(
     async (folderId: string) => {
+      if (getDatabaseAuthMode() !== 'authenticated') {
+        throw new Error('Sign in to save collections to your account.')
+      }
       await deleteFolder(folderId)
       if (folderFilter === folderId) {
         setFolderFilter('all')

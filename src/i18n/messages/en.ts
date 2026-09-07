@@ -31,6 +31,7 @@ export const en = {
     newStoryDescription: 'Choose the story language and the reader’s age. This adjusts vocabulary and complexity.',
     collection: 'Collection',
     collectionName: 'Collection name',
+    collectionSaveFailed: 'Could not save collection. Sign in and try again.',
     add: 'Add',
     searchPlaceholder: 'Search titles, content, characters…',
     filters: 'Filters',

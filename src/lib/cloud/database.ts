@@ -424,7 +424,10 @@ export async function deleteStory(storyId: string): Promise<void> {
   if (error) throw error
 }
 
-export async function createFolder(name: string): Promise<Folder> {
+export async function createFolder(
+  name: string,
+  options?: { id?: string; order?: number },
+): Promise<Folder> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -432,7 +435,8 @@ export async function createFolder(name: string): Promise<Folder> {
 
   const folders = await listFolders()
   const now = Date.now()
-  const folderId = generateId()
+  const folderId = options?.id ?? generateId()
+  const sortOrder = options?.order ?? folders.length
   const payload: FolderEncryptedPayload = { name: name.trim() || 'New collection' }
   const encrypted_payload = await encryptStoryPayload(payload)
 
@@ -440,16 +444,35 @@ export async function createFolder(name: string): Promise<Folder> {
     id: folderId,
     user_id: user.id,
     encrypted_payload,
-    sort_order: folders.length,
+    sort_order: sortOrder,
   })
   if (error) throw error
 
   return {
     id: folderId,
     name: payload.name,
-    order: folders.length,
+    order: sortOrder,
     createdAt: now,
     updatedAt: now,
+  }
+}
+
+/** Upload any guest collections created before sign-in into the user's Supabase library. */
+export async function migrateGuestFoldersToCloud(): Promise<void> {
+  const { snapshotGuestFolders } = await import('@/lib/guest/database')
+  const guestFolders = snapshotGuestFolders()
+  if (guestFolders.length === 0) return
+
+  const existing = await listFolders()
+  const existingIds = new Set(existing.map((folder) => folder.id))
+
+  for (const folder of guestFolders) {
+    if (existingIds.has(folder.id)) continue
+    try {
+      await createFolder(folder.name, { id: folder.id, order: folder.order })
+    } catch (error) {
+      console.warn('[folders] Failed to migrate guest collection', folder.id, error)
+    }
   }
 }
 
@@ -457,6 +480,11 @@ export async function updateFolder(
   folderId: string,
   updates: Partial<Pick<Folder, 'name' | 'order'>>,
 ): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const folders = await listFolders()
   const folder = folders.find((item) => item.id === folderId)
   if (!folder) return
@@ -473,6 +501,7 @@ export async function updateFolder(
       updated_at: new Date().toISOString(),
     })
     .eq('id', folderId)
+    .eq('user_id', user.id)
   if (error) throw error
 }
 

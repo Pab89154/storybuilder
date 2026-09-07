@@ -31,6 +31,7 @@ export const es = {
     newStoryDescription: 'Elige el idioma del cuento y la edad del lector. Ajusta el vocabulario y la complejidad.',
     collection: 'Colección',
     collectionName: 'Nombre de la colección',
+    collectionSaveFailed: 'No se pudo guardar la colección. Inicia sesión e inténtalo de nuevo.',
     add: 'Añadir',
     searchPlaceholder: 'Buscar títulos, contenido, personajes…',
     filters: 'Filtros',

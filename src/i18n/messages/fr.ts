@@ -32,6 +32,7 @@ export const fr = {
       'Choisissez la langue de l’histoire et l’âge du lecteur. Cela ajuste le vocabulaire et la complexité.',
     collection: 'Collection',
     collectionName: 'Nom de la collection',
+    collectionSaveFailed: 'Impossible d’enregistrer la collection. Connectez-vous et réessayez.',
     add: 'Ajouter',
     searchPlaceholder: 'Rechercher titres, contenu, personnages…',
     filters: 'Filtres',
