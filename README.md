@@ -116,24 +116,37 @@ use a Supabase `service_role` or secret key in either browser-facing variable.
 
 ### Supabase Dashboard → Authentication → URL configuration
 
-Add these so password-reset links work:
+**Important:** do **not** leave Site URL as `http://localhost:3000`. That default is
+why “Verify email address” opens an empty page. StoryBuilder is not on port 3000.
 
 - **Site URL:** `https://storybuilder.pw/`
 - **Redirect URLs:**
-  - `http://localhost:5173/**`
-  - `http://localhost:5175/**`
   - `https://storybuilder.pw/**`
   - `https://storybuilder.pw/reset-password`
   - `https://www.storybuilder.pw/**`
+  - `http://localhost:5173/**`
+  - `http://localhost:5175/**`
   - `https://pab89154.github.io/storybuilder/**` (optional while Pages still runs)
   - `https://pab89154.github.io/storybuilder/reset-password`
 
-The production build copies `index.html` to `404.html` so deep links like `/reset-password` work on GitHub Pages. Render uses an SPA rewrite instead (`render.yaml`).
+Also set Render env `VITE_APP_URL=https://storybuilder.pw` so signup/reset emails
+always redirect to production.
+
+### Custom SMTP (production email)
+
+Default Supabase email is test-only. Enable custom SMTP under
+[Auth → SMTP](https://supabase.com/dashboard/project/ujsxxvyhuutdttpfolqm/auth/smtp):
+
+- **Resend:** host `smtp.resend.com`, port `465`, user `resend`, password = API key
+- **iCloud:** host `smtp.mail.me.com`, port `587`, user = iCloud email, password = app-specific password
+
+Sender name: `StoryBuilder`. Full steps: `supabase/SETUP.md` §2.
 
 ### Supabase Dashboard → Authentication → Providers → Email
 
-Turn **Confirm email** off. Sign-up then returns a session immediately, so new
-users go straight into the app without checking their inbox.
+Turn **Confirm email** off (recommended) so new users enter the app without an
+inbox click. If you keep it on, finish Site URL + SMTP first, then re-send
+verification from `https://storybuilder.pw`.
 
 ### Deploy on Render + custom domain
 
