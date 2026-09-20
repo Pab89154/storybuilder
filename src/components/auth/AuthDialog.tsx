@@ -35,47 +35,23 @@ function AuthDialogForm({
   onOpenChange: (open: boolean) => void
 }) {
   const t = useUiT()
-  const {
-    signIn,
-    signUp,
-    signInWithOAuth,
-    requestPasswordReset,
-    needsOAuthUnlock,
-    oauthRecoveryKey,
-    clearOAuthRecoveryKey,
-    unlockWithRecovery,
-    signOut,
-  } = useAuth()
+  const { signIn, signUp, signInWithOAuth, requestPasswordReset } = useAuth()
   const formId = useId()
   const emailInputRef = useRef<HTMLInputElement>(null)
-  const recoveryInputRef = useRef<HTMLInputElement>(null)
   const submittingRef = useRef(false)
 
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [recoveryUnlockKey, setRecoveryUnlockKey] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [recoveryKey, setRecoveryKey] = useState<string | null>(oauthRecoveryKey)
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const showOAuthUnlock = needsOAuthUnlock && !recoveryKey
-
   useEffect(() => {
-    if (oauthRecoveryKey) {
-      setRecoveryKey(oauthRecoveryKey)
-      setMessage(t('auth.recoveryKeyHint'))
-    }
-  }, [oauthRecoveryKey, t])
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      if (showOAuthUnlock) recoveryInputRef.current?.focus()
-      else emailInputRef.current?.focus()
-    })
+    const frame = window.requestAnimationFrame(() => emailInputRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
-  }, [showOAuthUnlock])
+  }, [])
 
   const switchMode = (next: AuthMode) => {
     setMode(next)
@@ -83,14 +59,9 @@ function AuthDialogForm({
     setMessage(null)
     setRecoveryKey(null)
     setPassword('')
-    setRecoveryUnlockKey('')
   }
 
   const validate = (): string | null => {
-    if (showOAuthUnlock) {
-      if (!recoveryUnlockKey.trim()) return t('auth.recoveryKeyRequired')
-      return null
-    }
     const trimmedEmail = email.trim()
     if (!trimmedEmail) return t('auth.emailRequired')
     if (!isValidEmail(trimmedEmail)) return t('auth.invalidEmail')
@@ -103,10 +74,6 @@ function AuthDialogForm({
 
   const handleOpenChange = (next: boolean) => {
     if (isSubmitting) return
-    if (!next && needsOAuthUnlock && !oauthRecoveryKey) {
-      void signOut().catch(() => undefined)
-    }
-    if (!next && oauthRecoveryKey) clearOAuthRecoveryKey()
     onOpenChange(next)
   }
 
@@ -150,12 +117,6 @@ function AuthDialogForm({
     submittingRef.current = true
     setIsSubmitting(true)
     try {
-      if (showOAuthUnlock) {
-        await unlockWithRecovery(recoveryUnlockKey.trim())
-        onOpenChange(false)
-        return
-      }
-
       if (mode === 'forgot') {
         await requestPasswordReset(email.trim())
         setMessage(t('auth.resetEmailSent'))
@@ -192,17 +153,15 @@ function AuthDialogForm({
     }
   }
 
-  const title = showOAuthUnlock
-    ? t('auth.unlockTitle')
-    : mode === 'signIn'
+  const title =
+    mode === 'signIn'
       ? t('auth.signInTitle')
       : mode === 'signUp'
         ? t('auth.signUpTitle')
         : t('auth.forgotTitle')
 
-  const description = showOAuthUnlock
-    ? t('auth.unlockGitHubDescription')
-    : mode === 'signIn'
+  const description =
+    mode === 'signIn'
       ? t('auth.signInDescription')
       : mode === 'signUp'
         ? t('auth.signUpDescription')
@@ -210,13 +169,11 @@ function AuthDialogForm({
 
   const submitLabel = isSubmitting
     ? t('common.loading')
-    : showOAuthUnlock
-      ? t('auth.unlock')
-      : mode === 'signIn'
-        ? t('auth.signIn')
-        : mode === 'signUp'
-          ? t('auth.signUp')
-          : t('auth.sendReset')
+    : mode === 'signIn'
+      ? t('auth.signIn')
+      : mode === 'signUp'
+        ? t('auth.signUp')
+        : t('auth.sendReset')
 
   return (
     <DialogContent
@@ -243,7 +200,7 @@ function AuthDialogForm({
         </p>
       ) : null}
 
-      {!showOAuthUnlock && !recoveryKey && mode !== 'forgot' ? (
+      {!recoveryKey && mode !== 'forgot' ? (
         <div className="grid gap-3">
           <Button
             type="button"
@@ -271,60 +228,40 @@ function AuthDialogForm({
       ) : null}
 
       <form id={formId} className="grid gap-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        {showOAuthUnlock ? (
+        <div className="space-y-2">
+          <Label htmlFor="auth-email">{t('auth.email')}</Label>
+          <Input
+            ref={emailInputRef}
+            id="auth-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            required
+            disabled={isSubmitting || !isSupabaseConfigured}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'auth-error' : message ? 'auth-message' : undefined}
+          />
+        </div>
+
+        {mode !== 'forgot' ? (
           <div className="space-y-2">
-            <Label htmlFor="auth-recovery">{t('auth.recoveryKeyLabel')}</Label>
+            <Label htmlFor="auth-password">{t('auth.password')}</Label>
             <Input
-              ref={recoveryInputRef}
-              id="auth-recovery"
-              name="recoveryKey"
-              type="text"
-              autoComplete="off"
+              id="auth-password"
+              name="password"
+              type="password"
+              autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
               required
               disabled={isSubmitting || !isSupabaseConfigured}
-              value={recoveryUnlockKey}
-              onChange={(event) => setRecoveryUnlockKey(event.target.value)}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               aria-invalid={Boolean(error)}
             />
           </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="auth-email">{t('auth.email')}</Label>
-              <Input
-                ref={emailInputRef}
-                id="auth-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                required
-                disabled={isSubmitting || !isSupabaseConfigured}
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                aria-invalid={Boolean(error)}
-                aria-describedby={error ? 'auth-error' : message ? 'auth-message' : undefined}
-              />
-            </div>
-
-            {mode !== 'forgot' ? (
-              <div className="space-y-2">
-                <Label htmlFor="auth-password">{t('auth.password')}</Label>
-                <Input
-                  id="auth-password"
-                  name="password"
-                  type="password"
-                  autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-                  required
-                  disabled={isSubmitting || !isSupabaseConfigured}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  aria-invalid={Boolean(error)}
-                />
-              </div>
-            ) : null}
-          </>
-        )}
+        ) : null}
 
         {error ? (
           <p id="auth-error" className="text-sm text-red-600" role="alert">
@@ -345,15 +282,8 @@ function AuthDialogForm({
       </form>
 
       <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
-        {recoveryKey && !showOAuthUnlock ? (
-          <Button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => {
-              clearOAuthRecoveryKey()
-              onOpenChange(false)
-            }}
-          >
+        {recoveryKey ? (
+          <Button type="button" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
             {t('auth.close')}
           </Button>
         ) : (
@@ -367,7 +297,7 @@ function AuthDialogForm({
           </Button>
         )}
 
-        {!showOAuthUnlock && !recoveryKey ? (
+        {!recoveryKey ? (
           <div className="flex flex-wrap gap-3 text-sm">
             {mode !== 'signIn' ? (
               <button
@@ -418,22 +348,11 @@ function AuthDialogForm({
 }
 
 export function AuthDialog({ open, onOpenChange, initialMode = 'signIn' }: AuthDialogProps) {
-  const { needsOAuthUnlock, oauthRecoveryKey } = useAuth()
-  const forcedOpen = open || needsOAuthUnlock || Boolean(oauthRecoveryKey)
-
   return (
-    <Dialog
-      open={forcedOpen}
-      onOpenChange={(next) => {
-        if (!next && (needsOAuthUnlock || oauthRecoveryKey)) {
-          // AuthDialogForm handles sign-out / clear on cancel.
-        }
-        onOpenChange(next)
-      }}
-    >
-      {forcedOpen ? (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open ? (
         <AuthDialogForm
-          key={`${initialMode}-${needsOAuthUnlock ? 'unlock' : 'auth'}-open`}
+          key={`${initialMode}-open`}
           initialMode={initialMode}
           onOpenChange={onOpenChange}
         />

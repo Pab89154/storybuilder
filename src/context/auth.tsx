@@ -18,11 +18,11 @@ import {
 } from '@/lib/crypto/keySession'
 import {
   recoverUserEncryption,
+  rotateOAuthUserEncryption,
   sendRecoveryKeyEmail,
   setupOAuthUserEncryption,
   setupUserEncryption,
   unlockUserEncryption,
-  unlockWithRecoveryKey,
   userHasEncryptionKeys,
 } from '@/lib/cloud/encryptionKeys'
 import { clearGuestData } from '@/lib/guest/database'
@@ -43,13 +43,9 @@ type AuthContextValue = {
   encryptionReady: boolean
   isAuthenticated: boolean
   isConfigured: boolean
-  needsOAuthUnlock: boolean
-  oauthRecoveryKey: string | null
-  clearOAuthRecoveryKey: () => void
   signIn: (email: string, password: string) => Promise<{ recoveryKey?: string }>
   signUp: (email: string, password: string) => Promise<{ recoveryKey: string; needsEmailConfirmation: boolean }>
   signInWithOAuth: (provider: OAuthProvider) => Promise<void>
-  unlockWithRecovery: (recoveryKey: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   completePasswordReset: (password: string, recoveryKey: string) => Promise<void>
@@ -107,8 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(() => isSupabaseConfigured)
   const [encryptionReady, setEncryptionReady] = useState(false)
-  const [needsOAuthUnlock, setNeedsOAuthUnlock] = useState(false)
-  const [oauthRecoveryKey, setOAuthRecoveryKey] = useState<string | null>(null)
   const oauthBootstrapRef = useRef<Promise<void> | null>(null)
 
   const markReady = useCallback(async (nextSession: Session) => {
@@ -116,7 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(nextSession.user)
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
-    setNeedsOAuthUnlock(false)
     await migrateGuestData()
   }, [])
 
@@ -135,20 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const hasKeys = await userHasEncryptionKeys()
       if (!hasKeys) {
-        const { recoveryKey } = await setupOAuthUserEncryption()
-        const key = getMasterKey()
-        if (key) await persistMasterKey(nextSession.user.id, key)
-        void sendRecoveryKeyEmail(recoveryKey)
-        setOAuthRecoveryKey(recoveryKey)
-        await markReady(nextSession)
-        return
+        await setupOAuthUserEncryption()
+      } else {
+        // Local key missing (new browser / cleared storage). Mint a fresh device key
+        // so GitHub sign-in never asks for a recovery key.
+        await rotateOAuthUserEncryption()
       }
-
-      setSession(nextSession)
-      setUser(nextSession.user)
-      setEncryptionReady(false)
-      setNeedsOAuthUnlock(true)
-      setDatabaseAuthMode('guest')
+      const key = getMasterKey()
+      if (key) await persistMasterKey(nextSession.user.id, key)
+      await markReady(nextSession)
     },
     [markReady],
   )
@@ -201,7 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(restoredUser)
             setDatabaseAuthMode('authenticated')
             setEncryptionReady(true)
-            setNeedsOAuthUnlock(false)
             setIsLoading(false)
             await migrateGuestData()
             return
@@ -222,7 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setSession(null)
         setUser(null)
-        setNeedsOAuthUnlock(false)
         setIsLoading(false)
       })
       .catch(() => {
@@ -232,7 +218,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null)
         setUser(null)
         setEncryptionReady(false)
-        setNeedsOAuthUnlock(false)
         setDatabaseAuthMode('guest')
         setIsLoading(false)
       })
@@ -245,8 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         clearMasterKey()
         setEncryptionReady(false)
-        setNeedsOAuthUnlock(false)
-        setOAuthRecoveryKey(null)
         setDatabaseAuthMode('guest')
         return
       }
@@ -263,7 +246,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(nextSession)
           setUser(nextSession.user)
           setEncryptionReady(true)
-          setNeedsOAuthUnlock(false)
           setDatabaseAuthMode('authenticated')
           return
         }
@@ -290,8 +272,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setDatabaseAuthMode(user && encryptionReady ? 'authenticated' : 'guest')
   }, [user, encryptionReady])
 
-  const clearOAuthRecoveryKey = useCallback(() => setOAuthRecoveryKey(null), [])
-
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -300,7 +280,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await ensureEncryptionForPassword(password)
       setDatabaseAuthMode('authenticated')
       setEncryptionReady(true)
-      setNeedsOAuthUnlock(false)
       setSession(data.session)
       setUser(data.user)
       await migrateGuestData()
@@ -309,7 +288,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut().catch(() => undefined)
       clearMasterKey()
       setEncryptionReady(false)
-      setNeedsOAuthUnlock(false)
       setDatabaseAuthMode('guest')
       setSession(null)
       setUser(null)
@@ -333,7 +311,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { recoveryKey } = await ensureEncryptionForPassword(password)
         setDatabaseAuthMode('authenticated')
         setEncryptionReady(true)
-        setNeedsOAuthUnlock(false)
         setSession(data.session)
         setUser(data.user)
         await migrateGuestData()
@@ -342,7 +319,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut().catch(() => undefined)
         clearMasterKey()
         setEncryptionReady(false)
-        setNeedsOAuthUnlock(false)
         setDatabaseAuthMode('guest')
         setSession(null)
         setUser(null)
@@ -364,25 +340,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
-  const unlockWithRecovery = useCallback(async (recoveryKey: string) => {
-    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
-    const {
-      data: { user: current },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError) throw userError
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession()
-    if (!current || !currentSession) throw new Error('Not authenticated')
-
-    await unlockWithRecoveryKey(recoveryKey.trim())
-    const key = getMasterKey()
-    if (key) await persistMasterKey(current.id, key)
-    setNeedsOAuthUnlock(false)
-    await markReady(currentSession)
-  }, [markReady])
-
   const signOut = useCallback(async () => {
     const userId = user?.id
     if (isSupabaseConfigured) {
@@ -394,8 +351,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearGuestData()
     setDatabaseAuthMode('guest')
     setEncryptionReady(false)
-    setNeedsOAuthUnlock(false)
-    setOAuthRecoveryKey(null)
     setSession(null)
     setUser(null)
   }, [user])
@@ -419,7 +374,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (key && resetUser) await persistMasterKey(resetUser.id, key)
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
-    setNeedsOAuthUnlock(false)
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -430,13 +384,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       encryptionReady,
       isAuthenticated: Boolean(user && encryptionReady),
       isConfigured: isSupabaseConfigured,
-      needsOAuthUnlock,
-      oauthRecoveryKey,
-      clearOAuthRecoveryKey,
       signIn,
       signUp,
       signInWithOAuth,
-      unlockWithRecovery,
       signOut,
       requestPasswordReset,
       completePasswordReset,
@@ -446,13 +396,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isLoading,
       encryptionReady,
-      needsOAuthUnlock,
-      oauthRecoveryKey,
-      clearOAuthRecoveryKey,
       signIn,
       signUp,
       signInWithOAuth,
-      unlockWithRecovery,
       signOut,
       requestPasswordReset,
       completePasswordReset,

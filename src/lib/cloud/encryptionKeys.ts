@@ -59,8 +59,8 @@ export async function unlockUserEncryption(password: string): Promise<void> {
   setMasterKey(master)
 }
 
-/** First-time GitHub users have no password — wrap the master key with the recovery key. */
-export async function setupOAuthUserEncryption(): Promise<{ recoveryKey: string }> {
+/** First-time GitHub users have no password — wrap the master key with a device-only recovery wrap. */
+export async function setupOAuthUserEncryption(): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -85,7 +85,41 @@ export async function setupOAuthUserEncryption(): Promise<{ recoveryKey: string 
   if (error) throw error
 
   setMasterKey(master)
-  return { recoveryKey }
+}
+
+/**
+ * GitHub users keep the master key only in this browser. If the local key is gone,
+ * mint a new one so sign-in still works (previous encrypted stories on this account
+ * will no longer decrypt).
+ */
+export async function rotateOAuthUserEncryption(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const salt = generateSalt()
+  const recoveryKey = generateRecoveryKey()
+  const passwordKey = await deriveKeyFromPassword(recoveryKey, salt)
+  const recoveryCryptoKey = await deriveKeyFromRecoveryKey(recoveryKey)
+  const master = await generateMasterKey()
+  const encryptedMasterKey = await wrapMasterKey(master, passwordKey)
+  const encryptedMasterKeyRecovery = await wrapMasterKey(master, recoveryCryptoKey)
+  const recoveryKeyHash = await hashRecoveryKey(recoveryKey)
+
+  const { error } = await supabase
+    .from('user_encryption_keys')
+    .update({
+      salt,
+      encrypted_master_key: encryptedMasterKey,
+      encrypted_master_key_recovery: encryptedMasterKeyRecovery,
+      recovery_key_hash: recoveryKeyHash,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id)
+  if (error) throw error
+
+  setMasterKey(master)
 }
 
 export async function userHasEncryptionKeys(): Promise<boolean> {
@@ -100,31 +134,6 @@ export async function userHasEncryptionKeys(): Promise<boolean> {
     .maybeSingle()
   if (error) throw error
   return Boolean(data)
-}
-
-/** Unlock on a new device for OAuth accounts (or any account that still has the recovery key). */
-export async function unlockWithRecoveryKey(recoveryKey: string): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data, error } = await supabase
-    .from('user_encryption_keys')
-    .select('encrypted_master_key_recovery, recovery_key_hash')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('Encryption keys not found for this account')
-
-  const recoveryHash = await hashRecoveryKey(recoveryKey)
-  if (recoveryHash !== data.recovery_key_hash) {
-    throw new Error('Invalid recovery key')
-  }
-
-  const recoveryCryptoKey = await deriveKeyFromRecoveryKey(recoveryKey)
-  const master = await unwrapMasterKey(data.encrypted_master_key_recovery, recoveryCryptoKey)
-  setMasterKey(master)
 }
 
 export async function recoverUserEncryption(

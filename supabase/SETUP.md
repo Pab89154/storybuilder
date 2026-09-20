@@ -96,7 +96,7 @@ Open [Auth Providers](https://supabase.com/dashboard/project/ujsxxvyhuutdttpfolq
 
 Also ensure **Redirect URLs** (section 2a) include `https://storybuilder.pw/**` and local Vite URLs so the app can receive the session after OAuth.
 
-GitHub users get a **recovery key** on first sign-in (no password). They need that key to unlock stories on a new device.
+GitHub sign-in keeps the encryption key in this browser only (no recovery-key prompt).
 
 ## 3. Environment variables
 
