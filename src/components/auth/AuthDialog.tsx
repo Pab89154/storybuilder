@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Github } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -244,16 +245,20 @@ function AuthDialogForm({
       ) : null}
 
       {!showOAuthUnlock && !recoveryKey && mode !== 'forgot' ? (
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           <Button
             type="button"
             variant="outline"
+            className="h-10 gap-2 font-medium"
             disabled={isSubmitting || !isSupabaseConfigured}
             onClick={() => void handleGitHub()}
           >
+            <Github className="size-[18px] shrink-0" aria-hidden />
             {t('auth.continueWithGitHub')}
           </Button>
-          <p className="text-center text-xs text-[var(--color-muted-foreground)]">{t('auth.orContinueWithEmail')}</p>
+          <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+            {t('auth.orContinueWithEmail')}
+          </p>
         </div>
       ) : null}
 
