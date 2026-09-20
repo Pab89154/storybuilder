@@ -355,8 +355,12 @@ export const fr = {
     guestPromptDescription:
       'Les histoires invité restent uniquement dans cet onglet. Créez un compte gratuit pour les sauvegarder et partager des liens.',
     continueGuest: 'Continuer en invité',
+    continueWithGitHub: 'Continuer avec GitHub',
+    orContinueWithEmail: 'Ou continuer avec l’e-mail',
     unlockTitle: 'Déverrouiller vos histoires',
     unlockDescription: 'Saisissez votre mot de passe pour déchiffrer vos histoires sur cet appareil.',
+    unlockGitHubDescription:
+      'Saisissez la clé de récupération de votre première connexion GitHub pour déchiffrer vos histoires sur cet appareil.',
     unlock: 'Déverrouiller',
     resetPageTitle: 'Définir un nouveau mot de passe',
     resetPageDescription:

@@ -351,8 +351,12 @@ welcomeEyebrow: 'مغامرتك التالية تبدأ هنا',
     guestPromptDescription:
       'قصص الضيف تبقى فقط في علامة التبويب هذه. أنشئ حسابًا مجانيًا لحفظها بأمان ومشاركة الروابط.',
     continueGuest: 'المتابعة كضيف',
+    continueWithGitHub: 'المتابعة مع GitHub',
+    orContinueWithEmail: 'أو المتابعة بالبريد الإلكتروني',
     unlockTitle: 'افتح قصصك',
     unlockDescription: 'أدخل كلمة المرور لفك تشفير قصصك المحفوظة على هذا الجهاز.',
+    unlockGitHubDescription:
+      'أدخل مفتاح الاسترداد من أول تسجيل دخول عبر GitHub لفك تشفير قصصك على هذا الجهاز.',
     unlock: 'فتح',
     resetPageTitle: 'تعيين كلمة مرور جديدة',
     resetPageDescription: 'استخدم مفتاح الاسترداد من بريد التسجيل لاستعادة الوصول إلى قصصك المشفرة.',

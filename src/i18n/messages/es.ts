@@ -353,8 +353,12 @@ export const es = {
     guestPromptDescription:
       'Los cuentos de invitado solo existen en esta pestaña. Crea una cuenta gratuita para guardarlos de forma segura y compartir enlaces.',
     continueGuest: 'Continuar como invitado',
+    continueWithGitHub: 'Continuar con GitHub',
+    orContinueWithEmail: 'O continuar con correo',
     unlockTitle: 'Desbloquea tus cuentos',
     unlockDescription: 'Introduce tu contraseña para descifrar tus cuentos guardados en este dispositivo.',
+    unlockGitHubDescription:
+      'Introduce la clave de recuperación de tu primer inicio de sesión con GitHub para descifrar tus cuentos en este dispositivo.',
     unlock: 'Desbloquear',
     resetPageTitle: 'Establecer nueva contraseña',
     resetPageDescription:

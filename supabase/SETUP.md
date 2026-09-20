@@ -79,7 +79,24 @@ In **Authentication → Providers → Email**:
 - **If Confirm email stays ON:** complete 2a–2c first, then re-send verification from
   the app while signed up on `https://storybuilder.pw` (so `emailRedirectTo` is correct).
 
-Keep **Email** enabled; disable unused OAuth providers.
+Keep **Email** enabled.
+
+### 2e. GitHub sign-in (optional)
+
+Open [Auth Providers](https://supabase.com/dashboard/project/ujsxxvyhuutdttpfolqm/auth/providers).
+
+**Callback URL** (paste into the GitHub OAuth App):
+
+`https://ujsxxvyhuutdttpfolqm.supabase.co/auth/v1/callback`
+
+1. In GitHub → Settings → Developer settings → [OAuth Apps](https://github.com/settings/developers), create an app.
+2. Homepage URL: `https://storybuilder.pw`
+3. Authorization callback URL: the Supabase callback URL above.
+4. In Supabase → **GitHub**: enable, paste Client ID and Client Secret, save.
+
+Also ensure **Redirect URLs** (section 2a) include `https://storybuilder.pw/**` and local Vite URLs so the app can receive the session after OAuth.
+
+GitHub users get a **recovery key** on first sign-in (no password). They need that key to unlock stories on a new device.
 
 ## 3. Environment variables
 

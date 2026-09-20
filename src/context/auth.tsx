@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -18,8 +19,11 @@ import {
 import {
   recoverUserEncryption,
   sendRecoveryKeyEmail,
+  setupOAuthUserEncryption,
   setupUserEncryption,
   unlockUserEncryption,
+  unlockWithRecoveryKey,
+  userHasEncryptionKeys,
 } from '@/lib/cloud/encryptionKeys'
 import { clearGuestData } from '@/lib/guest/database'
 import { setDatabaseAuthMode } from '@/db/database'
@@ -30,6 +34,8 @@ import {
   supabaseConfigError,
 } from '@/lib/supabase/client'
 
+type OAuthProvider = 'github'
+
 type AuthContextValue = {
   user: User | null
   session: Session | null
@@ -37,14 +43,27 @@ type AuthContextValue = {
   encryptionReady: boolean
   isAuthenticated: boolean
   isConfigured: boolean
+  needsOAuthUnlock: boolean
+  oauthRecoveryKey: string | null
+  clearOAuthRecoveryKey: () => void
   signIn: (email: string, password: string) => Promise<{ recoveryKey?: string }>
   signUp: (email: string, password: string) => Promise<{ recoveryKey: string; needsEmailConfirmation: boolean }>
+  signInWithOAuth: (provider: OAuthProvider) => Promise<void>
+  unlockWithRecovery: (recoveryKey: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   completePasswordReset: (password: string, recoveryKey: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+function hasOAuthIdentity(user: User): boolean {
+  const identities = user.identities ?? []
+  if (identities.some((identity) => identity.provider === 'github')) {
+    return true
+  }
+  return user.app_metadata?.provider === 'github'
+}
 
 async function ensureEncryptionForPassword(password: string): Promise<{ recoveryKey?: string }> {
   const {
@@ -73,11 +92,82 @@ async function ensureEncryptionForPassword(password: string): Promise<{ recovery
   return result
 }
 
+async function migrateGuestData(): Promise<void> {
+  try {
+    const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
+    await migrateGuestFoldersToCloud()
+    clearGuestData()
+  } catch (migrationError) {
+    console.warn('[auth] Failed to migrate guest collections', migrationError)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(() => isSupabaseConfigured)
   const [encryptionReady, setEncryptionReady] = useState(false)
+  const [needsOAuthUnlock, setNeedsOAuthUnlock] = useState(false)
+  const [oauthRecoveryKey, setOAuthRecoveryKey] = useState<string | null>(null)
+  const oauthBootstrapRef = useRef<Promise<void> | null>(null)
+
+  const markReady = useCallback(async (nextSession: Session) => {
+    setSession(nextSession)
+    setUser(nextSession.user)
+    setDatabaseAuthMode('authenticated')
+    setEncryptionReady(true)
+    setNeedsOAuthUnlock(false)
+    await migrateGuestData()
+  }, [])
+
+  const bootstrapOAuthSession = useCallback(
+    async (nextSession: Session) => {
+      if (getMasterKey()) {
+        await markReady(nextSession)
+        return
+      }
+
+      const persisted = await loadPersistedMasterKey(nextSession.user.id)
+      if (persisted) {
+        await markReady(nextSession)
+        return
+      }
+
+      const hasKeys = await userHasEncryptionKeys()
+      if (!hasKeys) {
+        const { recoveryKey } = await setupOAuthUserEncryption()
+        const key = getMasterKey()
+        if (key) await persistMasterKey(nextSession.user.id, key)
+        void sendRecoveryKeyEmail(recoveryKey)
+        setOAuthRecoveryKey(recoveryKey)
+        await markReady(nextSession)
+        return
+      }
+
+      setSession(nextSession)
+      setUser(nextSession.user)
+      setEncryptionReady(false)
+      setNeedsOAuthUnlock(true)
+      setDatabaseAuthMode('guest')
+    },
+    [markReady],
+  )
+
+  const runOAuthBootstrap = useCallback(
+    (nextSession: Session) => {
+      if (!oauthBootstrapRef.current) {
+        oauthBootstrapRef.current = bootstrapOAuthSession(nextSession)
+          .catch((error) => {
+            console.warn('[auth] OAuth encryption bootstrap failed', error)
+          })
+          .finally(() => {
+            oauthBootstrapRef.current = null
+          })
+      }
+      return oauthBootstrapRef.current
+    },
+    [bootstrapOAuthSession],
+  )
 
   useEffect(() => {
     let mounted = true
@@ -89,83 +179,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    supabase.auth.getSession().then(async ({ data, error }) => {
-      if (!mounted) return
-      if (error) {
-        console.warn('[auth] Failed to restore session')
-        setSession(null)
-        setUser(null)
-        setDatabaseAuthMode('guest')
-        setIsLoading(false)
-        return
-      }
-
-      const restoredUser = data.session?.user ?? null
-      if (restoredUser) {
-        const key = await loadPersistedMasterKey(restoredUser.id)
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error }) => {
         if (!mounted) return
-        if (key) {
-          setSession(data.session)
-          setUser(restoredUser)
-          setDatabaseAuthMode('authenticated')
-          setEncryptionReady(true)
+        if (error) {
+          console.warn('[auth] Failed to restore session')
+          setSession(null)
+          setUser(null)
+          setDatabaseAuthMode('guest')
           setIsLoading(false)
-          try {
-            const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
-            await migrateGuestFoldersToCloud()
-            clearGuestData()
-          } catch (migrationError) {
-            console.warn('[auth] Failed to migrate guest collections', migrationError)
-          }
           return
         }
-        // Session persisted but the local key is gone (e.g. cleared storage or a
-        // new device). Sign out so the user simply logs in again, which unlocks
-        // automatically — no separate unlock password step.
-        await supabase.auth.signOut()
+
+        const restoredUser = data.session?.user ?? null
+        if (restoredUser && data.session) {
+          const key = await loadPersistedMasterKey(restoredUser.id)
+          if (!mounted) return
+          if (key) {
+            setSession(data.session)
+            setUser(restoredUser)
+            setDatabaseAuthMode('authenticated')
+            setEncryptionReady(true)
+            setNeedsOAuthUnlock(false)
+            setIsLoading(false)
+            await migrateGuestData()
+            return
+          }
+
+          if (hasOAuthIdentity(restoredUser)) {
+            await runOAuthBootstrap(data.session)
+            if (!mounted) return
+            setIsLoading(false)
+            return
+          }
+
+          // Email session without a local key: sign out so password login unlocks again.
+          await supabase.auth.signOut()
+          if (!mounted) return
+          clearMasterKey()
+          setDatabaseAuthMode('guest')
+        }
+        setSession(null)
+        setUser(null)
+        setNeedsOAuthUnlock(false)
+        setIsLoading(false)
+      })
+      .catch(() => {
         if (!mounted) return
+        console.warn('[auth] Failed to initialize authentication')
         clearMasterKey()
+        setSession(null)
+        setUser(null)
+        setEncryptionReady(false)
+        setNeedsOAuthUnlock(false)
         setDatabaseAuthMode('guest')
-      }
-      setSession(null)
-      setUser(null)
-      setIsLoading(false)
-    }).catch(() => {
-      if (!mounted) return
-      console.warn('[auth] Failed to initialize authentication')
-      clearMasterKey()
-      setSession(null)
-      setUser(null)
-      setEncryptionReady(false)
-      setDatabaseAuthMode('guest')
-      setIsLoading(false)
-    })
+        setIsLoading(false)
+      })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession)
-      setUser(nextSession?.user ?? null)
       if (!nextSession) {
+        setSession(null)
+        setUser(null)
         clearMasterKey()
         setEncryptionReady(false)
+        setNeedsOAuthUnlock(false)
+        setOAuthRecoveryKey(null)
         setDatabaseAuthMode('guest')
-      } else if (event === 'PASSWORD_RECOVERY') {
-        // Keep session for reset-password page; encryption unlock happens there.
-        setDatabaseAuthMode('authenticated')
+        return
       }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(nextSession)
+        setUser(nextSession.user)
+        setDatabaseAuthMode('authenticated')
+        return
+      }
+
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (getMasterKey()) {
+          setSession(nextSession)
+          setUser(nextSession.user)
+          setEncryptionReady(true)
+          setNeedsOAuthUnlock(false)
+          setDatabaseAuthMode('authenticated')
+          return
+        }
+        if (hasOAuthIdentity(nextSession.user)) {
+          void runOAuthBootstrap(nextSession)
+          return
+        }
+        setSession(nextSession)
+        setUser(nextSession.user)
+        return
+      }
+
+      setSession(nextSession)
+      setUser(nextSession.user)
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [runOAuthBootstrap])
 
-  // Keep the DB repository mode in sync with the signed-in + encryption-ready state.
   useEffect(() => {
     setDatabaseAuthMode(user && encryptionReady ? 'authenticated' : 'guest')
   }, [user, encryptionReady])
+
+  const clearOAuthRecoveryKey = useCallback(() => setOAuthRecoveryKey(null), [])
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
@@ -175,21 +300,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await ensureEncryptionForPassword(password)
       setDatabaseAuthMode('authenticated')
       setEncryptionReady(true)
+      setNeedsOAuthUnlock(false)
       setSession(data.session)
       setUser(data.user)
-      try {
-        const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
-        await migrateGuestFoldersToCloud()
-      } catch (migrationError) {
-        console.warn('[auth] Failed to migrate guest collections', migrationError)
-      }
-      clearGuestData()
+      await migrateGuestData()
       return result
     } catch (encryptionError) {
-      // Avoid leaving a half-authenticated session if encryption unlock fails.
       await supabase.auth.signOut().catch(() => undefined)
       clearMasterKey()
       setEncryptionReady(false)
+      setNeedsOAuthUnlock(false)
       setDatabaseAuthMode('guest')
       setSession(null)
       setUser(null)
@@ -213,20 +333,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { recoveryKey } = await ensureEncryptionForPassword(password)
         setDatabaseAuthMode('authenticated')
         setEncryptionReady(true)
+        setNeedsOAuthUnlock(false)
         setSession(data.session)
         setUser(data.user)
-        try {
-          const { migrateGuestFoldersToCloud } = await import('@/lib/cloud/database')
-          await migrateGuestFoldersToCloud()
-        } catch (migrationError) {
-          console.warn('[auth] Failed to migrate guest collections', migrationError)
-        }
-        clearGuestData()
+        await migrateGuestData()
         return { recoveryKey: recoveryKey ?? '', needsEmailConfirmation: false }
       } catch (encryptionError) {
         await supabase.auth.signOut().catch(() => undefined)
         clearMasterKey()
         setEncryptionReady(false)
+        setNeedsOAuthUnlock(false)
         setDatabaseAuthMode('guest')
         setSession(null)
         setUser(null)
@@ -236,6 +352,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return { recoveryKey: '', needsEmailConfirmation }
   }, [])
+
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: buildAppUrl(),
+      },
+    })
+    if (error) throw error
+  }, [])
+
+  const unlockWithRecovery = useCallback(async (recoveryKey: string) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured for this deployment.')
+    const {
+      data: { user: current },
+      error: userError,
+    } = await supabase.auth.getUser()
+    if (userError) throw userError
+    const {
+      data: { session: currentSession },
+    } = await supabase.auth.getSession()
+    if (!current || !currentSession) throw new Error('Not authenticated')
+
+    await unlockWithRecoveryKey(recoveryKey.trim())
+    const key = getMasterKey()
+    if (key) await persistMasterKey(current.id, key)
+    setNeedsOAuthUnlock(false)
+    await markReady(currentSession)
+  }, [markReady])
 
   const signOut = useCallback(async () => {
     const userId = user?.id
@@ -248,6 +394,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearGuestData()
     setDatabaseAuthMode('guest')
     setEncryptionReady(false)
+    setNeedsOAuthUnlock(false)
+    setOAuthRecoveryKey(null)
     setSession(null)
     setUser(null)
   }, [user])
@@ -271,6 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (key && resetUser) await persistMasterKey(resetUser.id, key)
     setDatabaseAuthMode('authenticated')
     setEncryptionReady(true)
+    setNeedsOAuthUnlock(false)
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -281,8 +430,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       encryptionReady,
       isAuthenticated: Boolean(user && encryptionReady),
       isConfigured: isSupabaseConfigured,
+      needsOAuthUnlock,
+      oauthRecoveryKey,
+      clearOAuthRecoveryKey,
       signIn,
       signUp,
+      signInWithOAuth,
+      unlockWithRecovery,
       signOut,
       requestPasswordReset,
       completePasswordReset,
@@ -292,8 +446,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isLoading,
       encryptionReady,
+      needsOAuthUnlock,
+      oauthRecoveryKey,
+      clearOAuthRecoveryKey,
       signIn,
       signUp,
+      signInWithOAuth,
+      unlockWithRecovery,
       signOut,
       requestPasswordReset,
       completePasswordReset,

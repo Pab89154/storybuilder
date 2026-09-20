@@ -355,8 +355,12 @@ export const de = {
     guestPromptDescription:
       'Gastgeschichten bleiben nur in diesem Tab. Erstelle ein kostenloses Konto, um sie sicher zu speichern und Links zu teilen.',
     continueGuest: 'Als Gast fortfahren',
+    continueWithGitHub: 'Mit GitHub fortfahren',
+    orContinueWithEmail: 'Oder mit E-Mail fortfahren',
     unlockTitle: 'Geschichten entsperren',
     unlockDescription: 'Gib dein Passwort ein, um deine Geschichten auf diesem Gerät zu entschlüsseln.',
+    unlockGitHubDescription:
+      'Gib den Wiederherstellungsschlüssel von deiner ersten GitHub-Anmeldung ein, um deine Geschichten auf diesem Gerät zu entschlüsseln.',
     unlock: 'Entsperren',
     resetPageTitle: 'Neues Passwort festlegen',
     resetPageDescription:

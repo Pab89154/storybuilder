@@ -35,23 +35,47 @@ function AuthDialogForm({
   onOpenChange: (open: boolean) => void
 }) {
   const t = useUiT()
-  const { signIn, signUp, requestPasswordReset } = useAuth()
+  const {
+    signIn,
+    signUp,
+    signInWithOAuth,
+    requestPasswordReset,
+    needsOAuthUnlock,
+    oauthRecoveryKey,
+    clearOAuthRecoveryKey,
+    unlockWithRecovery,
+    signOut,
+  } = useAuth()
   const formId = useId()
   const emailInputRef = useRef<HTMLInputElement>(null)
+  const recoveryInputRef = useRef<HTMLInputElement>(null)
   const submittingRef = useRef(false)
 
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [recoveryUnlockKey, setRecoveryUnlockKey] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [recoveryKey, setRecoveryKey] = useState<string | null>(null)
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(oauthRecoveryKey)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const showOAuthUnlock = needsOAuthUnlock && !recoveryKey
+
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => emailInputRef.current?.focus())
+    if (oauthRecoveryKey) {
+      setRecoveryKey(oauthRecoveryKey)
+      setMessage(t('auth.recoveryKeyHint'))
+    }
+  }, [oauthRecoveryKey, t])
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (showOAuthUnlock) recoveryInputRef.current?.focus()
+      else emailInputRef.current?.focus()
+    })
     return () => window.cancelAnimationFrame(frame)
-  }, [])
+  }, [showOAuthUnlock])
 
   const switchMode = (next: AuthMode) => {
     setMode(next)
@@ -59,9 +83,14 @@ function AuthDialogForm({
     setMessage(null)
     setRecoveryKey(null)
     setPassword('')
+    setRecoveryUnlockKey('')
   }
 
   const validate = (): string | null => {
+    if (showOAuthUnlock) {
+      if (!recoveryUnlockKey.trim()) return t('auth.recoveryKeyRequired')
+      return null
+    }
     const trimmedEmail = email.trim()
     if (!trimmedEmail) return t('auth.emailRequired')
     if (!isValidEmail(trimmedEmail)) return t('auth.invalidEmail')
@@ -74,7 +103,30 @@ function AuthDialogForm({
 
   const handleOpenChange = (next: boolean) => {
     if (isSubmitting) return
+    if (!next && needsOAuthUnlock && !oauthRecoveryKey) {
+      void signOut().catch(() => undefined)
+    }
+    if (!next && oauthRecoveryKey) clearOAuthRecoveryKey()
     onOpenChange(next)
+  }
+
+  const handleGitHub = async () => {
+    if (submittingRef.current) return
+    setError(null)
+    setMessage(null)
+    if (!isSupabaseConfigured) {
+      setError(t('auth.configMissing'))
+      return
+    }
+    submittingRef.current = true
+    setIsSubmitting(true)
+    try {
+      await signInWithOAuth('github')
+    } catch (submitError) {
+      setError(mapAuthError(submitError, t))
+      submittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   const handleSubmit = async (event?: FormEvent) => {
@@ -98,6 +150,12 @@ function AuthDialogForm({
     submittingRef.current = true
     setIsSubmitting(true)
     try {
+      if (showOAuthUnlock) {
+        await unlockWithRecovery(recoveryUnlockKey.trim())
+        onOpenChange(false)
+        return
+      }
+
       if (mode === 'forgot') {
         await requestPasswordReset(email.trim())
         setMessage(t('auth.resetEmailSent'))
@@ -134,23 +192,26 @@ function AuthDialogForm({
     }
   }
 
-  const title =
-    mode === 'signIn'
+  const title = showOAuthUnlock
+    ? t('auth.unlockTitle')
+    : mode === 'signIn'
       ? t('auth.signInTitle')
       : mode === 'signUp'
         ? t('auth.signUpTitle')
         : t('auth.forgotTitle')
 
-  const description =
-    mode === 'signIn'
+  const description = showOAuthUnlock
+    ? t('auth.unlockGitHubDescription')
+    : mode === 'signIn'
       ? t('auth.signInDescription')
       : mode === 'signUp'
         ? t('auth.signUpDescription')
         : t('auth.forgotDescription')
 
-  const submitLabel =
-    isSubmitting
-      ? t('common.loading')
+  const submitLabel = isSubmitting
+    ? t('common.loading')
+    : showOAuthUnlock
+      ? t('auth.unlock')
       : mode === 'signIn'
         ? t('auth.signIn')
         : mode === 'signUp'
@@ -182,41 +243,75 @@ function AuthDialogForm({
         </p>
       ) : null}
 
-      <form id={formId} className="grid gap-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        <div className="space-y-2">
-          <Label htmlFor="auth-email">{t('auth.email')}</Label>
-          <Input
-            ref={emailInputRef}
-            id="auth-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            required
+      {!showOAuthUnlock && !recoveryKey && mode !== 'forgot' ? (
+        <div className="grid gap-2">
+          <Button
+            type="button"
+            variant="outline"
             disabled={isSubmitting || !isSupabaseConfigured}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? 'auth-error' : message ? 'auth-message' : undefined}
-          />
+            onClick={() => void handleGitHub()}
+          >
+            {t('auth.continueWithGitHub')}
+          </Button>
+          <p className="text-center text-xs text-[var(--color-muted-foreground)]">{t('auth.orContinueWithEmail')}</p>
         </div>
+      ) : null}
 
-        {mode !== 'forgot' ? (
+      <form id={formId} className="grid gap-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
+        {showOAuthUnlock ? (
           <div className="space-y-2">
-            <Label htmlFor="auth-password">{t('auth.password')}</Label>
+            <Label htmlFor="auth-recovery">{t('auth.recoveryKeyLabel')}</Label>
             <Input
-              id="auth-password"
-              name="password"
-              type="password"
-              autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
+              ref={recoveryInputRef}
+              id="auth-recovery"
+              name="recoveryKey"
+              type="text"
+              autoComplete="off"
               required
               disabled={isSubmitting || !isSupabaseConfigured}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              value={recoveryUnlockKey}
+              onChange={(event) => setRecoveryUnlockKey(event.target.value)}
               aria-invalid={Boolean(error)}
             />
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="auth-email">{t('auth.email')}</Label>
+              <Input
+                ref={emailInputRef}
+                id="auth-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                required
+                disabled={isSubmitting || !isSupabaseConfigured}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'auth-error' : message ? 'auth-message' : undefined}
+              />
+            </div>
+
+            {mode !== 'forgot' ? (
+              <div className="space-y-2">
+                <Label htmlFor="auth-password">{t('auth.password')}</Label>
+                <Input
+                  id="auth-password"
+                  name="password"
+                  type="password"
+                  autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
+                  required
+                  disabled={isSubmitting || !isSupabaseConfigured}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  aria-invalid={Boolean(error)}
+                />
+              </div>
+            ) : null}
+          </>
+        )}
 
         {error ? (
           <p id="auth-error" className="text-sm text-red-600" role="alert">
@@ -237,67 +332,95 @@ function AuthDialogForm({
       </form>
 
       <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
-        <Button
-          type="submit"
-          form={formId}
-          disabled={isSubmitting || !isSupabaseConfigured}
-          aria-busy={isSubmitting}
-        >
-          {submitLabel}
-        </Button>
+        {recoveryKey && !showOAuthUnlock ? (
+          <Button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              clearOAuthRecoveryKey()
+              onOpenChange(false)
+            }}
+          >
+            {t('auth.close')}
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            form={formId}
+            disabled={isSubmitting || !isSupabaseConfigured}
+            aria-busy={isSubmitting}
+          >
+            {submitLabel}
+          </Button>
+        )}
 
-        <div className="flex flex-wrap gap-3 text-sm">
-          {mode !== 'signIn' ? (
-            <button
-              type="button"
-              className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              disabled={isSubmitting}
-              onClick={() => switchMode('signIn')}
-            >
-              {t('auth.haveAccount')}
-            </button>
-          ) : null}
-          {mode !== 'signUp' ? (
-            <button
-              type="button"
-              className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              disabled={isSubmitting}
-              onClick={() => switchMode('signUp')}
-            >
-              {t('auth.needAccount')}
-            </button>
-          ) : null}
-          {mode !== 'forgot' ? (
-            <button
-              type="button"
-              className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              disabled={isSubmitting}
-              onClick={() => switchMode('forgot')}
-            >
-              {t('auth.forgotPassword')}
-            </button>
-          ) : null}
-        </div>
+        {!showOAuthUnlock && !recoveryKey ? (
+          <div className="flex flex-wrap gap-3 text-sm">
+            {mode !== 'signIn' ? (
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                disabled={isSubmitting}
+                onClick={() => switchMode('signIn')}
+              >
+                {t('auth.haveAccount')}
+              </button>
+            ) : null}
+            {mode !== 'signUp' ? (
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                disabled={isSubmitting}
+                onClick={() => switchMode('signUp')}
+              >
+                {t('auth.needAccount')}
+              </button>
+            ) : null}
+            {mode !== 'forgot' ? (
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                disabled={isSubmitting}
+                onClick={() => switchMode('forgot')}
+              >
+                {t('auth.forgotPassword')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isSubmitting}
-          onClick={() => handleOpenChange(false)}
-        >
-          {t('sidebar.cancel')}
-        </Button>
+        {!recoveryKey ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => handleOpenChange(false)}
+          >
+            {t('sidebar.cancel')}
+          </Button>
+        ) : null}
       </DialogFooter>
     </DialogContent>
   )
 }
 
 export function AuthDialog({ open, onOpenChange, initialMode = 'signIn' }: AuthDialogProps) {
+  const { needsOAuthUnlock, oauthRecoveryKey } = useAuth()
+  const forcedOpen = open || needsOAuthUnlock || Boolean(oauthRecoveryKey)
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {open ? (
+    <Dialog
+      open={forcedOpen}
+      onOpenChange={(next) => {
+        if (!next && (needsOAuthUnlock || oauthRecoveryKey)) {
+          // AuthDialogForm handles sign-out / clear on cancel.
+        }
+        onOpenChange(next)
+      }}
+    >
+      {forcedOpen ? (
         <AuthDialogForm
-          key={`${initialMode}-open`}
+          key={`${initialMode}-${needsOAuthUnlock ? 'unlock' : 'auth'}-open`}
           initialMode={initialMode}
           onOpenChange={onOpenChange}
         />

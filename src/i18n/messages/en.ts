@@ -355,8 +355,12 @@ export const en = {
     guestPromptDescription:
       'Guest stories stay only in this browser tab. Create a free account to save them securely and share links.',
     continueGuest: 'Continue as guest',
+    continueWithGitHub: 'Continue with GitHub',
+    orContinueWithEmail: 'Or continue with email',
     unlockTitle: 'Unlock your stories',
     unlockDescription: 'Enter your password to decrypt your saved stories on this device.',
+    unlockGitHubDescription:
+      'Enter the recovery key from your first GitHub sign-in to decrypt your stories on this device.',
     unlock: 'Unlock',
     resetPageTitle: 'Set a new password',
     resetPageDescription:
