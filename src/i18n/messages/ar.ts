@@ -279,6 +279,8 @@ welcomeEyebrow: 'مغامرتك التالية تبدأ هنا',
   },
   errors: {
     promptRequired: 'يرجى إدخال فكرة للقصة قبل التوليد.',
+    contentBlocked:
+      'هذا النص غير مسموح في StoryBuilder. أبقِ الشخصيات والقصص مناسبة للأطفال — بلا محتوى جنسي أو عنيف أو كراهية أو غير قانوني.',
     generationFailed: 'فشل التوليد',
     regenerateFailed: 'فشل إعادة التوليد',
     duplicateFailed: 'فشل النسخ',

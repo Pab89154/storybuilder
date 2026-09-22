@@ -14,6 +14,41 @@ const ALLOWED_ORIGINS = new Set([
 
 type ChatMessage = { role?: string; content?: string }
 
+/** Lightweight mirror of StoryBuilder’s client content filter (kid-friendly). */
+function normalizeSafetyText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+const SAFETY_PATTERNS: RegExp[] = [
+  /\b(porn|porno|xxx|nsfw|hentai|nude|nudes|naked|nudity|erotic|erotica)\b/i,
+  /\b(sex\s*tape|blow\s*job|orgasm|incest|loli|shota|pedo|child\s*porn)\b/i,
+  /\b(sexy|seductive|lingerie|strip(per|tease)?|prostitut)\b/i,
+  /\b(how\s+to\s+(kill|murder|make\s+a?\s*bomb)|behead|torture\s+methods?)\b/i,
+  /\b(kill\s+all\s+|heil\s+hitler|white\s+power)\b/i,
+  /\b(how\s+to\s+(buy|sell|make)\s+(cocaine|heroin|fentanyl|meth))\b/i,
+  /\b(suicide\s+methods?|how\s+to\s+(kill|end)\s+(myself|my\s+life))\b/i,
+  /\b(cocaine|heroin|fentanyl|methamphetamine)\b/i,
+]
+
+function checkMessagesSafety(messages: ChatMessage[]): string | null {
+  const combined = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .join("\n")
+  const q = normalizeSafetyText(combined)
+  if (!q) return null
+  if (SAFETY_PATTERNS.some((re) => re.test(q))) {
+    return "StoryBuilder can’t process inappropriate content. Keep stories kid-friendly."
+  }
+  return null
+}
+
 function corsHeaders(req: Request): HeadersInit {
   const origin = req.headers.get("Origin") ?? ""
   const allowOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://storybuilder.pw"
@@ -122,6 +157,14 @@ Deno.serve(async (req: Request) => {
 
   if (!Array.isArray(payload.messages) || payload.messages.length === 0) {
     return new Response(JSON.stringify({ error: "messages are required" }), {
+      status: 400,
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+    })
+  }
+
+  const safetyError = checkMessagesSafety(payload.messages)
+  if (safetyError) {
+    return new Response(JSON.stringify({ error: safetyError }), {
       status: 400,
       headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     })

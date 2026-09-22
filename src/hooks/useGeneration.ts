@@ -17,6 +17,7 @@ import { countParagraphsWords } from '@/lib/wordCount'
 import { useStories } from '@/hooks/useStories'
 import { useLLM } from '@/hooks/useLLM'
 import { useUiT } from '@/i18n/context'
+import { checkStoryInputs } from '@/lib/contentFilter'
 import type { Paragraph } from '@/types/story'
 
 const generationRunRef = { current: 0 }
@@ -221,6 +222,17 @@ export function useGeneration() {
 
       const story = useStoryStore.getState().activeStory
       if (!story) return
+
+      const safety = checkStoryInputs({
+        title: story.title,
+        prompt: story.prompt,
+        characters: story.characters,
+        paragraphs: story.paragraphs,
+      })
+      if (!safety.ok) {
+        setGenerationError(t('errors.contentBlocked'))
+        return
+      }
 
       if (useStoryStore.getState().isGenerating) {
         const abort = generationAbortRef.current

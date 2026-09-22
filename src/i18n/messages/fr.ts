@@ -283,6 +283,8 @@ export const fr = {
   },
   errors: {
     promptRequired: 'Veuillez saisir une idée d’histoire avant de générer.',
+    contentBlocked:
+      'Ce texte n’est pas autorisé dans StoryBuilder. Gardez personnages et histoires adaptés aux enfants — pas de contenu sexuel, violent, haineux ou illégal.',
     generationFailed: 'Échec de la génération',
     regenerateFailed: 'Échec de la régénération',
     duplicateFailed: 'Échec de la duplication',

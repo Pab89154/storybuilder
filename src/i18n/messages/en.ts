@@ -283,6 +283,8 @@ export const en = {
   },
   errors: {
     promptRequired: 'Please enter a story prompt before generating.',
+    contentBlocked:
+      'That text isn’t allowed in StoryBuilder. Keep characters and stories kid-friendly — no sexual, violent, hateful, or illegal content.',
     generationFailed: 'Generation failed',
     regenerateFailed: 'Regeneration failed',
     duplicateFailed: 'Duplication failed',

@@ -14,6 +14,7 @@ import {
 import { addCharacter, deleteCharacter, updateCharacter } from '@/db/database'
 import { useUiT } from '@/i18n/context'
 import { useStories } from '@/hooks/useStories'
+import { checkCharacterContent } from '@/lib/contentFilter'
 import { generateRandomCharacter, isRandomCharacterName } from '@/lib/randomCharacter'
 import {
   formatCharacterListValue,
@@ -235,8 +236,7 @@ function CharacterCard({
                 void onUpdate({ alignment: value })
               }
             >
-              <SelectTrigger className={cn('w-full', compact && 'h-8')}
-              >
+              <SelectTrigger className={cn('w-full', compact && 'h-8')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -580,6 +580,16 @@ export function CharacterPanel({
   ) => {
     const characters = useStoryStore.getState().activeStory?.characters
     if (!characters) return
+
+    const current = characters.find((character) => character.id === characterId)
+    if (!current) return
+    const merged = { ...current, ...updates }
+    const safety = checkCharacterContent(merged as unknown as Record<string, unknown>)
+    if (!safety.ok) {
+      useStoryStore.getState().setGenerationError(safety.reason)
+      return
+    }
+    useStoryStore.getState().setGenerationError(null)
 
     updateActiveCharacters(
       characters.map((character) =>

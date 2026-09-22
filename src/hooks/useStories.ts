@@ -19,6 +19,7 @@ import { ensureStoriesBootstrapped } from '@/lib/storiesBootstrap'
 import { collectGenres, storyMatchesQuery } from '@/lib/search'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
 import { cancelGenerationIfActive } from '@/hooks/useGeneration'
+import { checkStoryInputs } from '@/lib/contentFilter'
 import { useStoryStore } from '@/store/storyStore'
 import type { FolderFilter, Language, Story } from '@/types/story'
 
@@ -200,6 +201,19 @@ export function useStories() {
   const saveStoryMeta = useCallback(
     (updates: StoryMetaUpdates, options?: { persistNow?: boolean }) => {
       if (!activeStory) return
+
+      if (typeof updates.prompt === 'string' || typeof updates.title === 'string') {
+        const safety = checkStoryInputs({
+          title: updates.title ?? activeStory.title,
+          prompt: updates.prompt ?? activeStory.prompt,
+          characters: activeStory.characters,
+        })
+        if (!safety.ok) {
+          useStoryStore.getState().setGenerationError(safety.reason)
+          return
+        }
+        useStoryStore.getState().setGenerationError(null)
+      }
 
       updateActiveStoryMeta(updates)
       pendingMetaStoryIdRef.current = activeStory.id

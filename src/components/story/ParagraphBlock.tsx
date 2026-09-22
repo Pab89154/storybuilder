@@ -3,6 +3,7 @@ import { Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TextareaWithMic } from '@/components/ui/textarea-with-mic'
 import { deleteParagraph, updateParagraph } from '@/db/database'
+import { checkContentSafety } from '@/lib/contentFilter'
 import { useStories } from '@/hooks/useStories'
 import { useGeneration } from '@/hooks/useGeneration'
 import { useStoryStore } from '@/store/storyStore'
@@ -33,6 +34,12 @@ export function ParagraphBlock({ paragraph, variant = 'card' }: ParagraphBlockPr
 
   const handleSave = async () => {
     if (!activeStory) return
+    const safety = checkContentSafety(editContent)
+    if (!safety.ok) {
+      useStoryStore.getState().setGenerationError(safety.reason)
+      return
+    }
+    useStoryStore.getState().setGenerationError(null)
     await updateParagraph(paragraph.id, { content: editContent, source: 'user' })
     useStoryStore.getState().upsertParagraph({
       ...paragraph,
