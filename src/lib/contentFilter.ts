@@ -116,27 +116,30 @@ export function checkContentSafety(text: string): ContentSafetyResult {
   return { ok: true }
 }
 
-export function checkCharacterContent(fields: Record<string, unknown>): ContentSafetyResult {
+/** String fields on a data object. Interfaces such as Character have no index signature, so they are not assignable to Record<string, unknown>. */
+function collectTextFields(fields: object): string[] {
   const parts: string[] = []
   for (const value of Object.values(fields)) {
     if (typeof value === 'string' && value.trim()) parts.push(value)
   }
-  return checkContentSafety(parts.join('\n'))
+  return parts
+}
+
+export function checkCharacterContent(fields: object): ContentSafetyResult {
+  return checkContentSafety(collectTextFields(fields).join('\n'))
 }
 
 export function checkStoryInputs(input: {
   title?: string | null
   prompt?: string | null
-  characters?: Array<Record<string, unknown>>
-  paragraphs?: Array<{ content?: string | null }>
+  characters?: readonly object[]
+  paragraphs?: ReadonlyArray<{ content?: string | null }>
 }): ContentSafetyResult {
   const chunks: string[] = []
   if (input.title) chunks.push(input.title)
   if (input.prompt) chunks.push(input.prompt)
   for (const character of input.characters ?? []) {
-    for (const value of Object.values(character)) {
-      if (typeof value === 'string' && value.trim()) chunks.push(value)
-    }
+    chunks.push(...collectTextFields(character))
   }
   for (const paragraph of input.paragraphs ?? []) {
     if (paragraph.content?.trim()) chunks.push(paragraph.content)
