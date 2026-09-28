@@ -116,9 +116,9 @@ export function checkContentSafety(text: string): ContentSafetyResult {
   return { ok: true }
 }
 
-export function checkCharacterContent(fields: Record<string, unknown>): ContentSafetyResult {
+export function checkCharacterContent(fields: object): ContentSafetyResult {
   const parts: string[] = []
-  for (const value of Object.values(fields)) {
+  for (const value of Object.values(fields as Record<string, unknown>)) {
     if (typeof value === 'string' && value.trim()) parts.push(value)
   }
   return checkContentSafety(parts.join('\n'))
@@ -127,14 +127,14 @@ export function checkCharacterContent(fields: Record<string, unknown>): ContentS
 export function checkStoryInputs(input: {
   title?: string | null
   prompt?: string | null
-  characters?: Array<Record<string, unknown>>
-  paragraphs?: Array<{ content?: string | null }>
+  characters?: ReadonlyArray<object>
+  paragraphs?: ReadonlyArray<{ content?: string | null }>
 }): ContentSafetyResult {
   const chunks: string[] = []
   if (input.title) chunks.push(input.title)
   if (input.prompt) chunks.push(input.prompt)
   for (const character of input.characters ?? []) {
-    for (const value of Object.values(character)) {
+    for (const value of Object.values(character as Record<string, unknown>)) {
       if (typeof value === 'string' && value.trim()) chunks.push(value)
     }
   }
