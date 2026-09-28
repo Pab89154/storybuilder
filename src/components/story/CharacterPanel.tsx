@@ -584,7 +584,7 @@ export function CharacterPanel({
     const current = characters.find((character) => character.id === characterId)
     if (!current) return
     const merged = { ...current, ...updates }
-    const safety = checkCharacterContent(merged as unknown as Record<string, unknown>)
+    const safety = checkCharacterContent(merged)
     if (!safety.ok) {
       useStoryStore.getState().setGenerationError(safety.reason)
       return
