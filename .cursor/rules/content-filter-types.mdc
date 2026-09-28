@@ -1,0 +1,19 @@
+---
+description: Prevent TS2322 regressions in StoryBuilder content filter character typing
+globs: src/lib/contentFilter.ts,src/hooks/useGeneration.ts,src/hooks/useStories.ts,src/components/story/**/*.tsx
+alwaysApply: false
+---
+
+# Content filter TypeScript types
+
+When changing `src/lib/contentFilter.ts` or call sites (`useGeneration`, `useStories`, `CharacterPanel`):
+
+- Type `checkStoryInputs({ characters })` as `ReadonlyArray<Character | Partial<Character>>` (or the story’s `Character[]`).
+- Type `checkCharacterContent` as `Character | Partial<Character>`.
+- **Never** use `Record<string, unknown>[]` / `Array<Record<string, unknown>>` for characters.
+
+Under `strict` TypeScript, `Character[]` is **not** assignable to `Record<string, unknown>[]`. That mistake has repeatedly caused deploy failures:
+
+`TS2322: Type 'Character[]' is not assignable to type 'Record<string, unknown>[]'.`
+
+Prefer importing `Character` / `Paragraph` from `@/types/story` and reading known string fields, instead of `Object.values` casts through `Record<string, unknown>`.

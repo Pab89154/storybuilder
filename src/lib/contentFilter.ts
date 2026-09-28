@@ -2,7 +2,13 @@
  * Inappropriate-content filter for StoryBuilder prompts, characters, and story text.
  * Adapted from Remy’s filter; tuned for child-oriented stories (stricter than chat).
  * Not a substitute for model-side safety.
+ *
+ * Typing note: accept `Character` / `Paragraph` from `@/types/story` — never
+ * `Record<string, unknown>[]`. Under strict TypeScript, `Character[]` is not
+ * assignable to `Record<string, unknown>[]` and that mistake has broken deploys.
  */
+
+import type { Character, Paragraph } from '@/types/story'
 
 export type ContentSafetyResult =
   | { ok: true }
@@ -67,6 +73,30 @@ function matchAny(q: string, patterns: RegExp[]): boolean {
   return patterns.some((re) => re.test(q))
 }
 
+/** Collect string field values from a Character (or partial character update). */
+function characterTextChunks(
+  character: Partial<Character> | Character,
+): string[] {
+  const parts: string[] = []
+  const values: Array<unknown> = [
+    character.name,
+    character.nickname,
+    character.description,
+    character.superpowerDescription,
+    character.species,
+    character.petName,
+    character.petSpecies,
+    character.petSuperpowerDescription,
+    character.vehicleType,
+    character.vehicleColor,
+    character.vehicleSpeed,
+  ]
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) parts.push(value)
+  }
+  return parts
+}
+
 export function checkContentSafety(text: string): ContentSafetyResult {
   const raw = text.trim()
   if (!raw) return { ok: true }
@@ -116,27 +146,23 @@ export function checkContentSafety(text: string): ContentSafetyResult {
   return { ok: true }
 }
 
-export function checkCharacterContent(fields: object): ContentSafetyResult {
-  const parts: string[] = []
-  for (const value of Object.values(fields as Record<string, unknown>)) {
-    if (typeof value === 'string' && value.trim()) parts.push(value)
-  }
-  return checkContentSafety(parts.join('\n'))
+export function checkCharacterContent(
+  fields: Partial<Character> | Character,
+): ContentSafetyResult {
+  return checkContentSafety(characterTextChunks(fields).join('\n'))
 }
 
 export function checkStoryInputs(input: {
   title?: string | null
   prompt?: string | null
-  characters?: ReadonlyArray<object>
-  paragraphs?: ReadonlyArray<{ content?: string | null }>
+  characters?: ReadonlyArray<Partial<Character> | Character>
+  paragraphs?: ReadonlyArray<Pick<Paragraph, 'content'> | { content?: string | null }>
 }): ContentSafetyResult {
   const chunks: string[] = []
   if (input.title) chunks.push(input.title)
   if (input.prompt) chunks.push(input.prompt)
   for (const character of input.characters ?? []) {
-    for (const value of Object.values(character as Record<string, unknown>)) {
-      if (typeof value === 'string' && value.trim()) chunks.push(value)
-    }
+    chunks.push(...characterTextChunks(character))
   }
   for (const paragraph of input.paragraphs ?? []) {
     if (paragraph.content?.trim()) chunks.push(paragraph.content)
