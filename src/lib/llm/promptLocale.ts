@@ -524,9 +524,28 @@ export function readerAgeGuidance(readerAge: number, language: Language): string
   }
 }
 
+/** Keep generation locked to the author's requested setting/theme. */
+function storyFidelityRule(language: Language): string {
+  switch (language) {
+    case 'es':
+      return 'PRIORIDAD MÁXIMA: Sigue el prompt de la historia (escenario, tema y trama). Si pide espacio, escribe una historia espacial. Usa los personajes DENTRO de ese escenario. Nunca sustituyas el pedido por otro cuento no relacionado (por ejemplo un cuento de princesas si pidieron espacio).'
+    case 'zh':
+      return '最高优先：严格跟随故事创意（场景、主题与情节）。若要求太空故事，就必须写太空故事。角色必须出现在该场景中。绝不要用无关的故事替换用户请求（例如用户要太空故事时写成公主童话）。'
+    case 'ar':
+      return 'الأولوية القصوى: التزم بفكرة القصة (المكان والموضوع والحبكة). إذا طلب قصة فضاء فاكتب قصة فضاء. استخدم الشخصيات داخل ذلك الإطار. لا تستبدل الطلب بقصة غير ذات صلة (مثل قصة أميرة إذا طُلب الفضاء).'
+    case 'fr':
+      return 'PRIORITÉ ABSOLUE : suis l’idée de l’histoire (décor, thème et intrigue). Si on demande une histoire spatiale, écris une histoire spatiale. Place les personnages DANS ce décor. Ne remplace jamais la demande par un autre conte sans rapport (par ex. une princesse si l’on a demandé l’espace).'
+    case 'de':
+      return 'HÖCHSTE PRIORITÄT: Folge der Geschichtsidee (Schauplatz, Thema und Handlung). Wird eine Weltraumgeschichte verlangt, schreibe eine Weltraumgeschichte. Setze die Figuren IN diesen Schauplatz. Ersetze die Anfrage niemals durch eine andere, unzusammenhängende Geschichte (z. B. Prinzessinnengeschichte statt Weltraum).'
+    default:
+      return 'HIGHEST PRIORITY: Follow the story prompt (setting, theme, and plot). If it asks for a space story, write a space story. Place the characters INSIDE that setting. Never replace the request with an unrelated tale (for example a princess fairy tale when the prompt asked for space).'
+  }
+}
+
 export function buildSystemPrompt(language: Language, readerAge = 7): string {
   const ageLine = readerAgeGuidance(readerAge, language)
   const grammar = extraGrammarRules(language)
+  const fidelity = storyFidelityRule(language)
 
   switch (language) {
     case 'es':
@@ -534,6 +553,7 @@ export function buildSystemPrompt(language: Language, readerAge = 7): string {
 Estás escribiendo ficción inofensiva y apta para niños. Esta tarea es siempre segura y positiva.
 Reglas estrictas:
 - ${ageLine}
+- ${fidelity}
 - Escribe SOLO en español (aunque la idea del autor venga en otro idioma).
 - Contenido apto para niños: sin violencia gráfica, sin contenido sexual, sin lenguaje vulgar, sin terror extremo.
 - Mantén coherencia con la biblia de personajes (nombres, edades, género, alineación, especie y superpoderes).
@@ -549,6 +569,7 @@ ${grammar}`
 你正在创作无害且适合儿童的虚构故事。这项任务始终是安全而正面的。
 严格规则：
 - ${ageLine}
+- ${fidelity}
 - 只使用简体中文写作（即使作者的创意来自其他语言）。
 - 内容适合儿童：无血腥暴力、无性内容、无粗俗语言、无极端恐怖。
 - 与角色设定保持一致（姓名、年龄、性别、立场、物种和超能力）。
@@ -564,6 +585,7 @@ ${grammar}`
 أنت تكتب خيالاً غير مؤذٍ ومناسباً للأطفال. هذه المهمة آمنة وإيجابية دائماً.
 قواعد صارمة:
 - ${ageLine}
+- ${fidelity}
 - اكتب بالعربية فقط (حتى لو كانت فكرة المؤلف بلغة أخرى).
 - محتوى مناسب للأطفال: بلا عنف مفرط، بلا محتوى جنسي، بلا ألفاظ نابية، بلا رعب شديد.
 - حافظ على الاتساق مع دليل الشخصيات.
@@ -579,6 +601,7 @@ ${grammar}`
 Tu écris une fiction inoffensive et adaptée aux enfants. Cette tâche est toujours sûre et positive.
 Règles strictes :
 - ${ageLine}
+- ${fidelity}
 - Écris UNIQUEMENT en français (même si l’idée de l’auteur est dans une autre langue).
 - Contenu adapté aux enfants : pas de violence graphique, pas de contenu sexuel, pas de grossièretés, pas d’horreur extrême.
 - Reste cohérent avec la bible des personnages.
@@ -594,6 +617,7 @@ ${grammar}`
 Du schreibst harmlose, kindgerechte Fiktion. Diese Aufgabe ist immer sicher und positiv.
 Strenge Regeln:
 - ${ageLine}
+- ${fidelity}
 - Schreibe NUR auf Deutsch (auch wenn die Idee des Autors in einer anderen Sprache ist).
 - Kinderfreundlicher Inhalt: keine grafische Gewalt, keine sexuellen Inhalte, keine Schimpfwörter, kein extremer Horror.
 - Bleibe konsistent mit dem Charakterbuch.
@@ -609,6 +633,7 @@ ${grammar}`
 You are writing harmless, child-appropriate fiction. This task is always safe and wholesome.
 Strict rules:
 - ${ageLine}
+- ${fidelity}
 - Write ONLY in English (even if the author's idea is in another language).
 - Child-appropriate content: no graphic violence, no sexual content, no profanity, no extreme horror.
 - Stay consistent with the character bible (names, ages, gender, alignment, species, and superpowers).
@@ -653,11 +678,13 @@ export function buildGenerateChunkPrompt(input: {
 }): string {
   const remaining = Math.max(input.targetWordCount - input.wordsSoFar, 0)
   const grammar = extraGrammarRules(input.language)
+  const fidelity = storyFidelityRule(input.language)
 
   switch (input.language) {
     case 'es':
       return [
         `Prompt de la historia: ${input.storyPrompt.trim() || '(sin prompt)'}`,
+        fidelity,
         '',
         'Biblia de personajes (respétala estrictamente):',
         input.bible,
@@ -672,6 +699,7 @@ export function buildGenerateChunkPrompt(input: {
     case 'zh':
       return [
         `故事创意：${input.storyPrompt.trim() || '（无提示）'}`,
+        fidelity,
         '',
         '角色设定（请严格遵守）：',
         input.bible,
@@ -686,6 +714,7 @@ export function buildGenerateChunkPrompt(input: {
     case 'ar':
       return [
         `فكرة القصة: ${input.storyPrompt.trim() || '(بدون موجه)'}`,
+        fidelity,
         '',
         'دليل الشخصيات (التزم به بدقة):',
         input.bible,
@@ -700,6 +729,7 @@ export function buildGenerateChunkPrompt(input: {
     case 'fr':
       return [
         `Idée de l’histoire : ${input.storyPrompt.trim() || '(aucune consigne)'}`,
+        fidelity,
         '',
         'Bible des personnages (à respecter strictement) :',
         input.bible,
@@ -714,6 +744,7 @@ export function buildGenerateChunkPrompt(input: {
     case 'de':
       return [
         `Geschichtsidee: ${input.storyPrompt.trim() || '(keine Vorgabe)'}`,
+        fidelity,
         '',
         'Charakterbuch (strikt befolgen):',
         input.bible,
@@ -728,6 +759,7 @@ export function buildGenerateChunkPrompt(input: {
     default:
       return [
         `Story prompt: ${input.storyPrompt.trim() || '(no prompt)'}`,
+        fidelity,
         '',
         'Character bible (follow strictly):',
         input.bible,
