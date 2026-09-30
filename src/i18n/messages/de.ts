@@ -286,6 +286,7 @@ export const de = {
     contentBlocked:
       'Dieser Text ist in StoryBuilder nicht erlaubt. Halte Figuren und Geschichten kindgerecht — kein sexueller, gewalttätiger, hasserfüllter oder illegaler Inhalt.',
     generationFailed: 'Generierung fehlgeschlagen',
+    modelBusy: 'Die Geschichten-KI ist gerade ausgelastet. Warte einen Moment und versuche es erneut.',
     regenerateFailed: 'Neu generieren fehlgeschlagen',
     duplicateFailed: 'Duplizieren fehlgeschlagen',
     minChapters: 'Ein Buch braucht mindestens 2 Kapitel.',

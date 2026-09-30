@@ -286,6 +286,7 @@ export const fr = {
     contentBlocked:
       'Ce texte n’est pas autorisé dans StoryBuilder. Gardez personnages et histoires adaptés aux enfants — pas de contenu sexuel, violent, haineux ou illégal.',
     generationFailed: 'Échec de la génération',
+    modelBusy: 'L’IA des histoires est très sollicitée. Patiente un instant, puis réessaie.',
     regenerateFailed: 'Échec de la régénération',
     duplicateFailed: 'Échec de la duplication',
     minChapters: 'Un livre nécessite au moins 2 chapitres.',

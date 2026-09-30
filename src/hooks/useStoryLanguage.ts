@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { applyStoryTranslation, updateStory } from '@/db/database'
+import { publicAiErrorMessage } from '@/lib/llm/aiErrors'
 import { initEngine } from '@/lib/llm/engine'
 import { translateStoryContent } from '@/lib/llm/translate'
 import { untitledStoryTitle } from '@/lib/storyLanguageMeta'
@@ -73,7 +74,11 @@ export function useStoryLanguage() {
         await refreshStories()
         await loadStory(story.id, { onlyIfStillActive: true })
       } catch (err) {
-        const message = err instanceof Error ? err.message : t('errors.translationFailed')
+        const message = publicAiErrorMessage(
+          err,
+          t('errors.translationFailed'),
+          t('errors.modelBusy'),
+        )
         setGenerationError(message)
         throw err
       } finally {

@@ -17,6 +17,12 @@ import { countParagraphsWords } from '@/lib/wordCount'
 import { useStories } from '@/hooks/useStories'
 import { useLLM } from '@/hooks/useLLM'
 import { useUiT } from '@/i18n/context'
+import {
+  isModelBusyError,
+  isRateLimitError,
+  isRetryableAiError,
+  publicAiErrorMessage,
+} from '@/lib/llm/aiErrors'
 import { checkStoryInputs } from '@/lib/contentFilter'
 import type { Paragraph } from '@/types/story'
 
@@ -26,22 +32,17 @@ const finishBookRequestedRef = { current: false }
 const generationCancelledRef = { current: false }
 const generationInFlightRef = { current: null as Promise<void> | null }
 
-/** One silent 429 recovery: wait, then auto-continue. Show the error if it never resumes. */
+/** One silent recovery for quota (429) or model overload (503). Show the error if it never resumes. */
 const RATE_LIMIT_WAIT_MS = 60_000
+const MODEL_BUSY_WAIT_MS = 8_000
 const RATE_LIMIT_SILENT_BUDGET_MS = 180_000
 
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === 'AbortError'
 }
 
-function isRateLimitError(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err ?? '')
-  return (
-    /\b429\b/.test(message) ||
-    /RESOURCE_EXHAUSTED/i.test(message) ||
-    /quota exceeded/i.test(message) ||
-    /rate[- ]?limits?/i.test(message)
-  )
+function retryDelayMs(err: unknown): number {
+  return isModelBusyError(err) && !isRateLimitError(err) ? MODEL_BUSY_WAIT_MS : RATE_LIMIT_WAIT_MS
 }
 
 function delay(ms: number, signal?: AbortSignal): Promise<void> {
@@ -320,15 +321,18 @@ export function useGeneration() {
           return
         } catch (err) {
           if (!canContinueRun(runId) || isAbortError(err)) return
-          if (!isRateLimitError(err)) {
+          if (!isRetryableAiError(err)) {
             setGenerationError(
-              err instanceof Error ? err.message : t('errors.generationFailed'),
+              publicAiErrorMessage(err, t('errors.generationFailed'), t('errors.modelBusy')),
             )
             return
           }
 
-          const rateLimitMessage =
-            err instanceof Error ? err.message : t('errors.generationFailed')
+          const rateLimitMessage = publicAiErrorMessage(
+            err,
+            t('errors.generationFailed'),
+            t('errors.modelBusy'),
+          )
 
           // One silent recovery only: keep spinner up, wait, auto-continue.
           // If generation does not resume within 180s, surface the error.
@@ -341,7 +345,7 @@ export function useGeneration() {
 
           try {
             const waitMs = Math.min(
-              RATE_LIMIT_WAIT_MS,
+              retryDelayMs(err),
               Math.max(0, RATE_LIMIT_SILENT_BUDGET_MS - (Date.now() - silentStartedAt)),
             )
             await delay(waitMs, generationAbortRef.current?.signal)
@@ -411,9 +415,9 @@ export function useGeneration() {
             }
           } catch (resumeErr) {
             if (!canContinueRun(runId) || isAbortError(resumeErr)) return
-            // Second failure (including another 429): show the error — no more silent retries.
+            // Second failure (including another 429 or 503): show the error — no more silent retries.
             setGenerationError(
-              resumeErr instanceof Error ? resumeErr.message : rateLimitMessage,
+              publicAiErrorMessage(resumeErr, rateLimitMessage, t('errors.modelBusy')),
             )
           }
         }
@@ -645,7 +649,9 @@ export function useGeneration() {
       } catch (err) {
         if (!canContinueRun(runId)) return
         if (!isAbortError(err)) {
-          setGenerationError(err instanceof Error ? err.message : t('errors.regenerateFailed'))
+          setGenerationError(
+            publicAiErrorMessage(err, t('errors.regenerateFailed'), t('errors.modelBusy')),
+          )
         }
       } finally {
         resolveInFlight?.()
@@ -695,7 +701,9 @@ export function useGeneration() {
         await generate()
       }
     } catch (err) {
-      setGenerationError(err instanceof Error ? err.message : t('errors.generationFailed'))
+      setGenerationError(
+        publicAiErrorMessage(err, t('errors.generationFailed'), t('errors.modelBusy')),
+      )
     }
   }, [
     continueAdvanced,

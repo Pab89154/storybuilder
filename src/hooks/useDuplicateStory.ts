@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { getStoryWithDetails, insertStoryFromDuplicate } from '@/db/database'
+import { publicAiErrorMessage } from '@/lib/llm/aiErrors'
 import { initEngine } from '@/lib/llm/engine'
 import { duplicateStoryWithTranslation } from '@/lib/llm/translate'
 import { useStories } from '@/hooks/useStories'
@@ -41,7 +42,11 @@ export function useDuplicateStory() {
         await loadStory(newStory.id)
         return newStory
       } catch (err) {
-        const message = err instanceof Error ? err.message : t('errors.duplicateFailed')
+        const message = publicAiErrorMessage(
+          err,
+          t('errors.duplicateFailed'),
+          t('errors.modelBusy'),
+        )
         setGenerationError(message)
         throw err
       } finally {

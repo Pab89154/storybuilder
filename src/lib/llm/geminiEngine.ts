@@ -1,3 +1,4 @@
+import { ModelBusyError, isModelBusyText } from '@/lib/llm/aiErrors'
 import type { ChatEngine } from '@/lib/llm/chatTypes'
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/supabase/client'
 
@@ -51,6 +52,7 @@ async function* parseSseStream(
             error?: { message?: string }
           }
           if (json.error?.message) {
+            if (isModelBusyText(json.error.message)) throw new ModelBusyError()
             throw new Error(json.error.message)
           }
           const delta = json.choices?.[0]?.delta?.content
@@ -79,12 +81,46 @@ function authHeaders(): HeadersInit {
 
 function mapFetchError(error: unknown): Error {
   if (error instanceof DOMException && error.name === 'AbortError') return error
+  if (error instanceof ModelBusyError) return error
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return new Error('You are offline. StoryBuilder needs an internet connection.')
   }
   return new Error(
     'Could not reach the story AI service. Check your connection and try again.',
   )
+}
+
+function extractUpstreamMessage(detail: string): string {
+  const trimmed = detail.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return trimmed
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      error?: { message?: string } | string
+      message?: string
+    }
+    if (typeof parsed.error === 'string' && parsed.error.trim()) return parsed.error.trim()
+    if (
+      parsed.error &&
+      typeof parsed.error === 'object' &&
+      typeof parsed.error.message === 'string' &&
+      parsed.error.message.trim()
+    ) {
+      return parsed.error.message.trim()
+    }
+    if (typeof parsed.message === 'string' && parsed.message.trim()) return parsed.message.trim()
+  } catch {
+    /* keep the raw body */
+  }
+  return trimmed
+}
+
+function upstreamError(status: number, detail: string): Error {
+  const message = extractUpstreamMessage(detail)
+  if (status === 503 || isModelBusyText(message) || isModelBusyText(detail)) {
+    return new ModelBusyError()
+  }
+  const summary = message || 'request failed'
+  return new Error(`AI error ${status}: ${summary}`)
 }
 
 export function createGeminiEngine(): ChatEngine {
@@ -127,9 +163,7 @@ export function createGeminiEngine(): ChatEngine {
 
       if (!response.ok) {
         const detail = await response.text().catch(() => '')
-        throw new Error(
-          `AI error ${response.status}: ${detail || response.statusText}`,
-        )
+        throw upstreamError(response.status, detail || response.statusText)
       }
 
       const json = (await response.json()) as {
@@ -181,9 +215,7 @@ export function createGeminiEngine(): ChatEngine {
 
         if (!response.ok || !response.body) {
           const detail = await response.text().catch(() => '')
-          throw new Error(
-            `AI error ${response.status}: ${detail || response.statusText}`,
-          )
+          throw upstreamError(response.status, detail || response.statusText)
         }
 
         let fullText = ''

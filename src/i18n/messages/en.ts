@@ -286,6 +286,7 @@ export const en = {
     contentBlocked:
       'That text isn’t allowed in StoryBuilder. Keep characters and stories kid-friendly — no sexual, violent, hateful, or illegal content.',
     generationFailed: 'Generation failed',
+    modelBusy: 'The story AI is busy right now. Wait a moment and try again.',
     regenerateFailed: 'Regeneration failed',
     duplicateFailed: 'Duplication failed',
     minChapters: 'A book needs at least 2 chapters.',

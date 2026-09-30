@@ -279,6 +279,7 @@ export const zh = {
     promptRequired: '生成前请输入故事创意。',
     contentBlocked: 'StoryBuilder 不允许该内容。请保持角色与故事适合儿童——禁止色情、暴力、仇恨或违法内容。',
     generationFailed: '生成失败',
+    modelBusy: '故事 AI 目前繁忙。请稍等片刻后再试。',
     regenerateFailed: '重新生成失败',
     duplicateFailed: '复制失败',
     minChapters: '一本书至少需要 2 章。',

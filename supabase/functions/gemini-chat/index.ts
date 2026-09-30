@@ -2,6 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 const DEFAULT_MODEL = "gemini-3.6-flash"
 
+/** Tried once when the requested model answers 503/429 (capacity, not a bad prompt). */
+const OVERLOAD_FALLBACKS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+
 const ALLOWED_ORIGINS = new Set([
   "https://storybuilder.pw",
   "https://www.storybuilder.pw",
@@ -103,6 +106,90 @@ function toGeminiBody(
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isTransientGeminiFailure(status: number, detail: string): boolean {
+  if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) {
+    return true
+  }
+  return /UNAVAILABLE|high demand|RESOURCE_EXHAUSTED|overloaded/i.test(detail)
+}
+
+function geminiEndpoint(model: string, stream: boolean, geminiKey: string): string {
+  const action = stream ? "streamGenerateContent?alt=sse" : "generateContent"
+  const joiner = stream ? "&" : "?"
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:${action}${joiner}key=${encodeURIComponent(geminiKey)}`
+}
+
+type GeminiAttempt =
+  | { kind: "ok"; response: Response }
+  | { kind: "fatal"; status: number; detail: string }
+  | { kind: "transient"; status: number; detail: string }
+
+async function attemptGemini(
+  model: string,
+  stream: boolean,
+  geminiKey: string,
+  geminiBody: unknown,
+): Promise<GeminiAttempt> {
+  try {
+    const upstream = await fetch(geminiEndpoint(model, stream, geminiKey), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
+    })
+    if (upstream.ok && upstream.body) return { kind: "ok", response: upstream }
+    const detail = await upstream.text().catch(() => "")
+    if (isTransientGeminiFailure(upstream.status, detail)) {
+      return { kind: "transient", status: upstream.status, detail }
+    }
+    return {
+      kind: "fatal",
+      status: upstream.status || 502,
+      detail: detail || "Gemini request failed",
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "network error"
+    return { kind: "transient", status: 503, detail }
+  }
+}
+
+/** One short retry on the requested model, then a single fallback model. */
+async function generateWithFallback(
+  model: string,
+  stream: boolean,
+  geminiKey: string,
+  geminiBody: unknown,
+): Promise<GeminiAttempt> {
+  const fallback = OVERLOAD_FALLBACKS.find((candidate) => candidate !== model)
+  const candidates = fallback ? [model, fallback] : [model]
+  let lastTransient: GeminiAttempt & { kind: "transient" } = {
+    kind: "transient",
+    status: 503,
+    detail: "",
+  }
+
+  for (let index = 0; index < candidates.length; index++) {
+    const attempts = index === 0 ? 2 : 1
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (attempt > 0) await sleep(800)
+      else if (index > 0) await sleep(300)
+      const result = await attemptGemini(candidates[index], stream, geminiKey, geminiBody)
+      if (result.kind === "ok") return result
+      if (result.kind === "fatal") {
+        // A missing fallback model should not replace the original overload error.
+        if (index > 0) return lastTransient
+        return result
+      }
+      lastTransient = result
+    }
+  }
+
+  return lastTransient
+}
+
 function extractGeminiText(payload: unknown): string {
   const json = payload as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
@@ -189,23 +276,57 @@ Deno.serve(async (req: Request) => {
   const stream = payload.stream !== false
   const geminiBody = toGeminiBody(payload.messages, temperature, maxTokens)
 
-  const endpoint = stream
-    ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(geminiKey)}`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`
-
-  const upstream = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(geminiBody),
-  })
-
-  if (!upstream.ok || !upstream.body) {
-    const detail = await upstream.text().catch(() => upstream.statusText)
-    return new Response(detail || JSON.stringify({ error: "Gemini request failed" }), {
-      status: upstream.status,
+  const attempt = await generateWithFallback(model, stream, geminiKey, geminiBody)
+  if (attempt.kind === "fatal") {
+    return new Response(attempt.detail || JSON.stringify({ error: "Gemini request failed" }), {
+      status: attempt.status,
       headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     })
   }
+  if (attempt.kind === "transient") {
+    const quota =
+      attempt.status === 429 ||
+      /RESOURCE_EXHAUSTED|quota exceeded|rate[- ]?limit/i.test(attempt.detail)
+    const overload =
+      attempt.status === 503 ||
+      /UNAVAILABLE|high demand|overloaded/i.test(attempt.detail)
+    if (quota && !overload) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 429,
+            message: "Resource has been exhausted (e.g. check quota).",
+            status: "RESOURCE_EXHAUSTED",
+          },
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+        },
+      )
+    }
+    if (overload || attempt.status === 503) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 503,
+            message: "The story AI is busy right now. Please try again in a moment.",
+            status: "UNAVAILABLE",
+          },
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+        },
+      )
+    }
+    return new Response(attempt.detail || JSON.stringify({ error: "Gemini request failed" }), {
+      status: attempt.status,
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+    })
+  }
+
+  const upstream = attempt.response
 
   if (!stream) {
     try {
