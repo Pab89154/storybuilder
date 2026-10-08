@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Download, Loader2, Pencil, Share2, Sparkles, Square, StepForward } from 'lucide-react'
+import { StoryBuilderLogo } from '@/components/StoryBuilderLogo'
 import { Button } from '@/components/ui/button'
 import { InputWithMic } from '@/components/ui/input-with-mic'
 import { Progress } from '@/components/ui/progress'
@@ -175,10 +176,7 @@ export function StoryWorkspace() {
       <header className="shrink-0 border-b bg-[var(--color-card)] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <BookOpen
-              className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
-              aria-hidden
-            />
+            <StoryBuilderLogo className="h-5 w-5" alt="" />
             <InputWithMic
               language={activeStory.language}
               value={activeStory.title}
