@@ -1,6 +1,5 @@
-import { BookPlus, Feather, Globe2, Plus, Shield, Sparkles, Users, Wand2 } from 'lucide-react'
+import { BookOpen, BookPlus, Feather, Globe2, Plus, Shield, Sparkles, Users, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { StoryBuilderLogo } from '@/components/StoryBuilderLogo'
 import { useStoryCreation } from '@/context/storyCreation'
 import { useUiT } from '@/i18n/context'
 
@@ -82,7 +81,7 @@ export function WelcomeScreen() {
             <div className="storybook-preview-spine" />
             <div className="storybook-preview-cover">
               <div className="storybook-preview-mark">
-                <StoryBuilderLogo className="h-8 w-8" alt="" />
+                <BookOpen className="h-6 w-6" strokeWidth={1.6} />
               </div>
               <div className="storybook-preview-lines">
                 <span />

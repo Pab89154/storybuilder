@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, ChevronDown, ChevronRight, CircleHelp, FolderPlus, Library, LogOut, MessageSquare, PanelLeft, PanelLeftClose, Pencil, Plus, Search, SlidersHorizontal, Trash2, User } from 'lucide-react'
-import { StoryBuilderLogo } from '@/components/StoryBuilderLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -325,7 +324,7 @@ export function Sidebar({ collapsed, onToggleCollapsed, onOpenHowToGuide }: Side
         >
       <div className="border-b p-4 min-w-0 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
-          <StoryBuilderLogo className="h-6 w-6" alt="" />
+          <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
           <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight">
             {t('app.name')}
           </h1>
